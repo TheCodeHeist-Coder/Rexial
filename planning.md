@@ -8,7 +8,7 @@ _________________ `` Qtrive ``________________
 (1) => User can create own quize...(only registerd user)
          -> Only the registerd user on the plateform can create or host live quizes
          -> Host can invite the co-organisers to join the quiz organization via email
-         -> if the user is already registerd on the plateform on the plateform then he'll only accept the email and join as co-host
+         -> if the user is already registerd on the plateform then he'll only accept the email and join as co-host
          -> if he is not registered on the plateform then first he'll register through that mail and  join as co-host
          -> when he is done with creating quiz then generate a code to join the quiz.
          -> With the help of that code, users can join the quiz in realtime ( __WebSockets__).
