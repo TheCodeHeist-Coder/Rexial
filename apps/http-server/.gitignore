@@ -1,0 +1,28 @@
+# Dependencies
+/node_modules
+/jspm_packages/
+
+# Production artifacts
+/dist
+/build
+*.log
+npm-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Environment variables
+.env
+.env.test
+
+# Testing
+/coverage
+/.nyc_output
+
+# Editors/OS files
+.DS_Store
+*.suo
+*.user
+*.casc
+*.pid
+*.seed
+*.pac

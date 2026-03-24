@@ -1,0 +1,25 @@
+{
+  "name": "http-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+   "build": "tsc -b",
+   "dev": "tsc -b && node --watch dist/index.js",
+   "start": "node dist/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+     "@repo/db": "workspace:*",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.5.0",
+    "ts-node-dev": "^2.0.0",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.2"
+  }
+}
