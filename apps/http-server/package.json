@@ -4,15 +4,17 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-   "build": "tsc -b",
-   "dev": "tsc -b && node --watch dist/index.js",
-   "start": "node dist/index.js"
+    "build": "tsc -b",
+    "dev": "tsc -b && node --watch dist/index.js",
+    "start": "node --watch dist/index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-     "@repo/db": "workspace:*",
+    "@repo/db": "workspace:*",
+    "@types/dotenv": "^8.2.3",
+    "dotenv": "^17.3.1",
     "express": "^5.2.1"
   },
   "devDependencies": {
