@@ -68,3 +68,17 @@ _________________ `` Qtrive ``________________
 
         (ii) auto genearted quize by uploading the pdf of the content and syllabus 
         (iii) AI generated quiz in just one prompt with dificulty levels 
+
+
+
+
+
+
+
+
+
+
+ ## Schema planning...
+ #### Here is the basic version of schema of Qtrive
+
+![alt text](<Screenshot From 2026-03-27 10-31-57.png>)
