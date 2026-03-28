@@ -1,11 +1,15 @@
-
+import {BrowserRouter, Route, Routes} from 'react-router-dom'
+import LandingPage from './screens/LandingPage'
 
 function App() {
 
   return (
-    <div className="flex items-center justify-center w-full min-h-screen">
-      <h1 className="text-black text-4xl font-bold tracking-wide"> Qtrive </h1>
-    </div>
+    <BrowserRouter>
+        <Routes>
+           <Route path='/' element={<LandingPage />} />
+
+        </Routes>
+    </BrowserRouter>
   )
 
 }

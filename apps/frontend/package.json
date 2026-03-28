@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
+    "start": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -12,8 +13,10 @@
   "dependencies": {
     "@repo/db": "workspace:*",
     "@tailwindcss/vite": "^4.2.2",
+    "@types/react-router": "^5.1.20",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-router": "^7.13.2",
     "tailwindcss": "^4.2.2"
   },
   "devDependencies": {
