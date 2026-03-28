@@ -9,7 +9,7 @@
 
 ### Fonts used:-
 #### ```Overall Boss-Font```
-     1. Fira Sans
+     1. IBM Plex Sans
 
 #### ```For Some Asthetic Look```     
       1. Delius
