@@ -1,4 +1,6 @@
 import BgBoss from "../components/BgBoss"
+import Flow from "../components/Flow"
+import HeroSection from "../components/HeroSection"
 import Navbar from "../components/Navbar"
 
 function LandingPage() {
@@ -8,6 +10,12 @@ function LandingPage() {
 
     {/* Navbar */}
     <Navbar />
+
+    {/* Herosection */}
+    <HeroSection />
+
+    {/* flow of application */}
+    <Flow />
 
    </div>
   )
