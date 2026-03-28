@@ -4,6 +4,10 @@ import { prisma } from "@repo/db"
 import bcrypt from 'bcrypt'
 import jwt from "jsonwebtoken"
 import { errorResponse } from "../utils/error"
+import id from "zod/v4/locales/id.js"
+import { email } from "zod"
+import tr from "zod/v4/locales/tr.js"
+
 
 export const userRegisterController = async (req: Request, res: Response) => {
 
@@ -11,7 +15,7 @@ export const userRegisterController = async (req: Request, res: Response) => {
 
         const { name, email, password } = req.body;
 
-        console.log( "The name , email and passwords are: ", name, email, password)
+        console.log("The name , email and passwords are: ", name, email, password)
 
         // is user existed already
         const isUserExisted = await prisma.user.findUnique({
@@ -36,7 +40,7 @@ export const userRegisterController = async (req: Request, res: Response) => {
         // generating token...
         const token = jwt.sign({
             userId: user.id
-        }, process.env.JWT_SECRET || "secret", { expiresIn: '7d' });
+        }, process.env.JWT_SECRET || "secret", { expiresIn: '5d' });
 
         return res.status(201).json({
             token,
@@ -53,4 +57,69 @@ export const userRegisterController = async (req: Request, res: Response) => {
 
     }
 
+}
+
+
+
+
+export const userLoginController = async (req: Request, res: Response) => {
+    try {
+
+        const { email, password } = req.body;
+
+        if (!email || !password) return errorResponse(res, 400, "All fields are required...");
+
+        const user = await prisma.user.findUnique({
+            where: { email }
+        })
+
+        if (!user) return errorResponse(res, 404, "No user found. Please signup first....");
+
+        // password matching
+        const passwordIsCorrect = await bcrypt.compare(password, user.password);
+
+        if (!passwordIsCorrect) return errorResponse(res, 400, "Invalid Credentials...");
+
+        const token = jwt.sign({
+            userId: user.id
+        }, process.env.JWT_SECRET || "secret", { expiresIn: '5d' });
+
+        return res.status(200).json({
+            token,
+            user: {
+                id: user.id,
+                email: user.email,
+                name: user.name
+            }
+        })
+
+    } catch (error) {
+        console.log("Login error is: ", error);
+        return errorResponse(res, 500, "Internal Server Errror....")
+    }
+}
+
+
+export const getLoggedInUserController = async (req: Request, res: Response) => {
+    try {
+
+        const user = await prisma.user.findUnique({
+            where: { id: req.userId },
+            select: { id: true, name: true, email: true, createdAt: true }
+        })
+
+        if (!user) return errorResponse(res, 404, "User not found...")
+
+        return res.status(200).json({
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email
+            }
+        })
+
+    } catch (error) {
+        console.log("Auth verification failed", error);
+        return errorResponse(res, 500, "Internal Server Error")
+    }
 }
