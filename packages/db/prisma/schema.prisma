@@ -45,13 +45,16 @@ model User {
 }
 
 model Quiz {
-  id             String          @id @default(uuid())
-  title          String
-  description    String?
-  joinCode       String?         @unique
-  status         QuizStatus      @default(DRAFT)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  id          String     @id @default(uuid())
+  title       String
+  description String?
+  joinCode    String?    @unique
+  status      QuizStatus @default(DRAFT)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  creatorId String
+
   quizOrganizers QuizOrganizer[]
   questions      Question[]
   quizSessions   QuizSession[]

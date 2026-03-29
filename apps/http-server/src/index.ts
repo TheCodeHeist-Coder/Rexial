@@ -3,6 +3,7 @@ import { configDotenv } from 'dotenv';
 configDotenv();
 
 import authRoutes from "./routes/authRoutes"
+import quizzesRoutes from "./routes/quiz"
 
 const app: Express = express()
 
@@ -15,6 +16,9 @@ const PORT: String = process.env.PORT || '3000';
 // routes
 
 app.use("/api/v1/auth", authRoutes)
+
+// quiz routes
+app.use("/api/v1/quizzes", quizzesRoutes)
 
 
 
