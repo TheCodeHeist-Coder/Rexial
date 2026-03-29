@@ -1,6 +1,7 @@
 import BgBoss from "../components/BgBoss"
 import Flow from "../components/Flow"
 import HeroSection from "../components/HeroSection"
+import Invitation from "../components/Invitation"
 import Navbar from "../components/Navbar"
 
 function LandingPage() {
@@ -16,6 +17,9 @@ function LandingPage() {
 
     {/* flow of application */}
     <Flow />
+
+    {/* Invitiion INfo */}
+    <Invitation />
 
    </div>
   )
