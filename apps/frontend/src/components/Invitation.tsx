@@ -31,7 +31,7 @@ function Invitation() {
 
             <div className="left"> 
                 
-                <div className=" flex flex-col gap-4 rounded-xl py-2 px-6  bg-black drop-shadow-sm drop-shadow-rose-500">
+                <div className=" flex flex-col gap-4 rounded-xl py-5 px-6  bg-black drop-shadow-sm drop-shadow-rose-500">
 
                     <div className="heading">
                         <h2 className="text-lg font-secondary font-bold tracking-wider pt-2 text-gray-200 "> Invite Co-organizers </h2>
