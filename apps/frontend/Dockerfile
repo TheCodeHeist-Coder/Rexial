@@ -4,7 +4,7 @@ RUN npm i -g pnpm
 
 WORKDIR /app
 
-# Copy root config (IMPORTANT for turborepo)
+# Copy root config (IMPORtANT for turborepo)
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml turbo.json ./
 
 
@@ -12,7 +12,7 @@ COPY apps ./apps
 COPY packages ./packages
 
 
-RUN pnpm install
+RUN pnpm install --shamefully-hoist
 
 # Move to frontend app
 WORKDIR /app/apps/frontend
