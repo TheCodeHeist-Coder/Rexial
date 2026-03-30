@@ -1,0 +1,148 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum QuizStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+}
+
+enum OrganizerRole {
+  OWNER
+  CO_ORGANIZER
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+}
+
+enum SessionStatus {
+  WAITING
+  IN_PROGRESS
+  COMPLETED
+}
+
+model User {
+  id             String          @id @default(uuid())
+  name           String
+  email          String          @unique
+  password       String
+  createdAt      DateTime        @default(now())
+  quizOrganizers QuizOrganizer[]
+  participants   Participant[]
+}
+
+model Quiz {
+  id          String     @id @default(uuid())
+  title       String
+  description String?
+  joinCode    String?    @unique
+  status      QuizStatus @default(DRAFT)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  creatorId String
+
+  quizOrganizers QuizOrganizer[]
+  questions      Question[]
+  quizSessions   QuizSession[]
+}
+
+model QuizOrganizer {
+  id           String        @id @default(uuid())
+  role         OrganizerRole @default(CO_ORGANIZER)
+  inviteStatus InviteStatus  @default(PENDING)
+  inviteToken  String?       @unique
+  inviteEmail  String?
+  createdAt    DateTime      @default(now())
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  quizId String
+  quiz   Quiz   @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, quizId])
+}
+
+model Question {
+  id        String @id @default(uuid())
+  text      String
+  timeLimit Int    @default(15)
+  order     Int
+
+  quizId String
+  quiz   Quiz   @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  answers            Answer[]
+  participantAnswers ParticipantAnswer[]
+}
+
+model Answer {
+  id        String  @id @default(uuid())
+  text      String
+  isCorrect Boolean @default(false)
+
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  participantAnswers ParticipantAnswer[]
+}
+
+model QuizSession {
+  id                   String        @id @default(uuid())
+  currentQuestionIndex Int           @default(0)
+  status               SessionStatus @default(WAITING)
+  startedAt            DateTime?
+  endedAt              DateTime?
+  createdAt            DateTime      @default(now())
+
+  quizId String
+  quiz   Quiz   @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  participants Participant[]
+}
+
+model Participant {
+  id       String   @id @default(uuid())
+  username String
+  score    Int      @default(0)
+  joinedAt DateTime @default(now())
+
+  sessionId String
+  session   QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  answers ParticipantAnswer[]
+}
+
+model ParticipantAnswer {
+  id        String   @id @default(uuid())
+  timeMs    Int
+  isCorrect Boolean
+  points    Int      @default(0)
+  createdAt DateTime @default(now())
+
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  answerId String?
+  answer   Answer? @relation(fields: [answerId], references: [id])
+}
