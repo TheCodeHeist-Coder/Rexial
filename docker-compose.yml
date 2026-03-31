@@ -24,7 +24,7 @@ services:
       - /app/node_modules
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/Qtrive
-    command: sh -c "npx wait-on tcp:db:5432 && pnpm --filter @repo/db run db:generate && pnpm --filter @repo/db run db:migrate && pnpm run dev"
+    command: sh -c "npx wait-on tcp:db:5432 && pnpm --filter @repo/db run db:generate && pnpm --filter @repo/db run db:deploy && pnpm run dev"
     depends_on:
       db:
         condition: service_healthy
