@@ -17,11 +17,15 @@
     "@types/dotenv": "^8.2.3",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/nodemon": "^3.1.1",
+    "@types/passport": "^1.0.17",
+    "@types/passport-google-oauth20": "^2.0.17",
     "bcrypt": "^6.0.0",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "nodemon": "^3.1.14",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
