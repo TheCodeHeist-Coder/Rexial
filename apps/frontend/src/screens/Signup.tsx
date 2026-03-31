@@ -3,8 +3,9 @@ import BgBoss from "../components/BgBoss"
 import Steps from "../smallUnits.tsx/Steps"
 import { LuLoaderPinwheel } from "react-icons/lu"
 import { BsArrowRight } from "react-icons/bs"
-import Heading from "../components/Heading"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
+import { api } from "../services/api"
+import { useAuthStore } from "../store/authStore"
 
 
 
@@ -13,13 +14,33 @@ function Signup() {
     const [name, setName] = useState<string>('')
     const [email, setEmail] = useState<string>('')
     const [password, setPassword] = useState<string>('')
-    const [loading, setLoading] = useState<boolean>(false)
+    const [loading, setLoading] = useState<boolean>(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const [error, setError] = useState<string>('');
+
+    const navigate = useNavigate();
+    const setAuth = useAuthStore((state) => state.setAuth);
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        setLoading(true)
+        setError('');
+        setLoading(true);
 
-        // api logic
+        try {
+
+            const { data } = await api.post('/auth/register', { name, email, password });
+            setAuth(data.user, data.token);
+            navigate('/dashboard');
+
+
+        } catch (error: any) {
+            setError(error.response?.data?.erorr || "Failed to register...")
+
+        } finally {
+            setLoading(true);
+        }
+
+
 
     }
 
@@ -78,6 +99,10 @@ function Signup() {
                             <p className="text-gray-500 font-medium tracking-wide"> OR </p>
                             <div className="border-b border-gray-700 w-full">  </div>
                         </div>
+
+                        {error && (
+                            <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg mb-6 text-sm text-center"> {error} </div>
+                        )}
 
 
 
