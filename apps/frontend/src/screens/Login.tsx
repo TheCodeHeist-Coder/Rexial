@@ -3,7 +3,9 @@ import BgBoss from "../components/BgBoss"
 import { LuLoaderPinwheel } from "react-icons/lu"
 import { BsArrowRight } from "react-icons/bs"
 
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
+import { useAuthStore } from "../store/authStore"
+import { api } from "../services/api"
 
 function Login() {
 
@@ -11,13 +13,30 @@ function Login() {
 
     const [email, setEmail] = useState<string>('')
     const [password, setPassword] = useState<string>('')
-    const [loading, setLoading] = useState<boolean>(false)
+    const [loading, setLoading] = useState<boolean>(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault()
+    const [error, setError] = useState<string>('');
+
+    const navigate = useNavigate();
+
+    const setAuth = useAuthStore((state) => state.setAuth);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
         setLoading(true)
 
-        // api logic
+        try {
+            const { data } = await api.post('/auth/login', { email, password });
+            setAuth(data.user, data.token);
+            navigate('/dashboard');
+        } catch (error: any) {
+
+            setError(error.response?.data?.error || "Failed to login...")
+
+        } finally {
+            setLoading(false);
+        }
 
     }
 
@@ -58,7 +77,11 @@ function Login() {
                         <div className="border-b border-gray-700 w-full">  </div>
                     </div>
 
-
+                    {error && (
+                        <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg mb-6 text-sm text-center">
+                            {error}
+                        </div>
+                    )}
 
                     <form onSubmit={handleSubmit} className="space-y-5 mt-8">
                         <div className="flex flex-col gap-2">
