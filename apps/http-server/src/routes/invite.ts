@@ -4,8 +4,6 @@ const router:Router = Router();
 
 
 
-// sending invitation for joining the quiz
-router.post("/send")
 
 
 

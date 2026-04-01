@@ -59,7 +59,7 @@ function Signup() {
 
 
 
-                        <h1 className=" text-8xl font-secondary font-extrabold tracking-wide"> Midnight <span className="text-pink-400 drop-shadow-md drop-shadow-pink-950"> Pulse </span> </h1>
+                        <h1 className=" text-8xl font-secondary font-extrabold text-gray-300 tracking-wide"> Midnight <span className="text-pink-400 drop-shadow-md drop-shadow-pink-950"> Pulse </span> </h1>
 
 
 
