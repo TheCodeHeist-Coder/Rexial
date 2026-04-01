@@ -11,7 +11,7 @@ function Invitation() {
                 </div>
 
                 <div className="title">
-                    <h1 className="text-6xl tracking-wider font-semibold font-secondary max-w-126"> Curate with your collectives </h1>
+                    <h1 className="text-6xl tracking-wider font-semibold text-gray-400 font-secondary max-w-126"> Curate with your collectives </h1>
                 </div>
 
                 <div className="desc font-main text-lg font-medium text-gray-400 max-w-136">
@@ -34,7 +34,7 @@ function Invitation() {
                 <div className=" flex flex-col gap-4 rounded-xl py-5 px-6  bg-black drop-shadow-sm drop-shadow-rose-500">
 
                     <div className="heading">
-                        <h2 className="text-lg font-secondary font-bold tracking-wider pt-2 text-gray-200 "> Invite Co-organizers </h2>
+                        <h2 className="text-lg font-secondary font-bold tracking-wider pt-2 text-gray-300 "> Invite Co-organizers </h2>
                     </div>
 
                     <div className="content font-main flex items-center gap-3">
