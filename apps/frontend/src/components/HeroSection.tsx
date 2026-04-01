@@ -3,8 +3,12 @@ import Badge from "./Badge"
 import { Link } from "react-router-dom"
 import { GiFallingStar } from "react-icons/gi"
 import { BsWrenchAdjustable } from "react-icons/bs"
+import { useAuthStore } from "../store/authStore"
 
 function HeroSection() {
+
+    const {user} = useAuthStore();
+
     return (
         <div className="text-white flex flex-col items-center max-w-380 m-auto pb-18  ">
 
@@ -44,12 +48,12 @@ function HeroSection() {
 
             <div className="bottom flex font-secondary items-center w-135 mt-10 justify-between">
                 <div className="left">
-                    <p className="text-gray-400 flex items-center gap-2 "> <GiFallingStar className="text-rose-600 w-7 h-7 animate-pulse mb-2" /> Ready to lead? <Link to={"/host-quiz"} className="text-rose-500 font-semibold pl-2 hover:text-rose-700"> Host a Quiz </Link> </p>
+                    <p className="text-gray-400 flex items-center gap-2 "> <GiFallingStar className="text-rose-600 w-7 h-7 animate-pulse mb-2" /> Ready to lead? <Link to={ user ? "/host-quiz" : "/login"} className="text-rose-500 font-semibold pl-2 hover:text-rose-700"> Host a Quiz </Link> </p>
                 </div>
 
 
                 <div className="left">
-                    <p className="text-gray-400 flex items-center gap-2 "> <BsWrenchAdjustable className="text-cyan-600 w-6 h-6 animate-pulse " /> Ready to lead? <Link to={"/host-quiz"} className="text-cyan-500 font-semibold pl-2 hover:text-cyan-700"> Sign Up </Link> </p>
+                    <p className="text-gray-400 flex items-center gap-2 "> <BsWrenchAdjustable className="text-cyan-600 w-6 h-6 animate-pulse " /> {user ? "Already in?":  "New here?" } <Link to={ user ? "/dashboard": "signup"} className="text-cyan-500 font-semibold pl-2 hover:text-cyan-700 tracking-wide">{ user ? "Enjoy..." : "Sign Up" } </Link> </p>
                 </div>
 
             </div>
