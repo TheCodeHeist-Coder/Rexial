@@ -5,12 +5,12 @@ import { useAuthStore } from "../store/authStore"
 function Navbar() {
 
     const { user } = useAuthStore();
-    
+
 
     return (
         <div className=" px-4 py-6 sticky top-0 z-40">
 
-            <div className="nav bg-black/95  flex items-center justify-between px-10 border-[0.1px] border-b-cyan-500 rounded-4xl max-w-360 mx-auto h-15 ">
+            <div className="nav bg-black/95  flex items-center justify-between px-10 border border-b-rose-800 rounded-4xl max-w-360 mx-auto h-15 ">
                 <div className="logo  font-special text-4xl font-bold  tracking-wider bg-clip-text text-transparent bg-linear-to-t from-pink-600 to-pink-300"> Qtrive </div>
 
                 <div className="right flex items-center gap-15">
@@ -34,7 +34,7 @@ function Navbar() {
 
                         }
 
-                       
+
                     </div>
                 </div>
 
