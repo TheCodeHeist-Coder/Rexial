@@ -5,6 +5,7 @@ configDotenv();
 import cors from 'cors'
 import authRoutes from "./routes/authRoutes"
 import quizzesRoutes from "./routes/quiz"
+import quizSessionRoutes from "./routes/session"
 
 const app: Express = express()
 
@@ -24,6 +25,9 @@ app.use("/api/v1/auth", authRoutes)
 
 // quiz routes
 app.use("/api/v1/quizzes", quizzesRoutes)
+
+// quiz session routes
+app.use("/api/v1/session", quizSessionRoutes)
 
 
 
