@@ -42,6 +42,7 @@ model User {
   createdAt      DateTime        @default(now())
   quizOrganizers QuizOrganizer[]
   participants   Participant[]
+  quizzes        Quiz[]
 }
 
 model Quiz {
@@ -53,8 +54,8 @@ model Quiz {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
-  creatorId String
-
+  creatorId      String
+  creator        User            @relation(fields: [creatorId], references: [id])
   quizOrganizers QuizOrganizer[]
   questions      Question[]
   quizSessions   QuizSession[]
