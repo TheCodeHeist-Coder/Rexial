@@ -35,7 +35,6 @@ function Dashboard() {
   const fetchQuizzes = async () => {
     try {
       const { data } = await api.get('/quizzes');
-      console.log("Quiz data is", data);
       setQuizzes(data);
     } catch (error) {
       console.log(error)
@@ -71,43 +70,46 @@ function Dashboard() {
 
   return (
     <div className="w-full min-h-screen  bg-[#000000]/98 opacity-99 pb-12">
-      <BgBoss opacity="opacity-8" />
+      <BgBoss opacity="opacity-5" />
 
       {/* Simple navbar */}
-<div className="sticky top-0 pt-3 z-50 px-2">
-  <div className="nav max-w-7xl bg-black/95 rounded-full m-auto py-3 px-6 sm:px-6  flex items-center justify-between">
+      <div className="sticky top-0 pt-3 z-50 px-2">
+        <div className="nav max-w-7xl bg-black/95 rounded-full m-auto py-3 px-6 sm:px-6  flex items-center justify-between">
 
-    {/* Logo */}
-    <div className="logo-home">
-      <Link
-        to={"/"}
-        className="logo font-special text-xl sm:text-2xl md:text-4xl font-bold tracking-wide bg-clip-text text-transparent bg-linear-to-t from-pink-900 to-pink-500"
-      >
-        Qtrive
-      </Link>
-    </div>
+          {/* Logo */}
+          <div className="logo-home">
+            <Link
+              to={"/"}
+              className="logo font-special text-xl sm:text-2xl md:text-4xl font-bold tracking-wide bg-clip-text text-transparent bg-linear-to-t from-pink-900 to-pink-500"
+            >
+              Qtrive
+            </Link>
+          </div>
 
-    {/* User + Logout */}
-    <div className="logout-name flex items-center gap-2 sm:gap-4">
+          {/* User + Logout */}
+          <div className="logout-name flex items-center gap-2 sm:gap-4">
 
-      <p className="font-secondary text-gray-300 text-xs sm:text-lg truncate max-w-25 sm:max-w-none">
-        Hii,
-        <span className="pl-1 text-pink-600 font-bold text-lg">
-          {user?.name}
-        </span>
-      </p>
+            <p className="font-secondary text-gray-300 text-xs sm:text-lg truncate max-w-25 sm:max-w-none">
+              Hii,
+              <span className="pl-1 text-pink-600 font-bold text-lg">
+                {user?.name}
+              </span>
+            </p>
 
-      <button
-        onClick={logout}
-        className="font-secondary font-semibold border border-rose-600 cursor-pointer active:scale-95 transition duration-100 hover:text-rose-400 py-1.5 px-5 sm:px-5 rounded-lg text-rose-600 flex items-center gap-1 sm:gap-2 bg-rose-700/10 hover:bg-rose-700/20 text-xs sm:text-base"
-      >
-        <span className="hidden sm:inline">Logout</span>
-        <FaArrowRightToBracket />
-      </button>
+            <button
+              onClick={() => {
+                logout();
+                navigate("/login");
+              }}
+              className="font-secondary font-semibold border border-rose-600 cursor-pointer active:scale-95 transition duration-100 hover:text-rose-400 py-1.5 px-5 sm:px-5 rounded-lg text-rose-600 flex items-center gap-1 sm:gap-2 bg-rose-700/10 hover:bg-rose-700/20 text-xs sm:text-base"
+            >
+              <span className="hidden sm:inline">Logout</span>
+              <FaArrowRightToBracket />
+            </button>
 
-    </div>
-  </div>
-</div>
+          </div>
+        </div>
+      </div>
 
       {/* quiz create starting */}
       <div className="flex max-w-7xl px-12 m-auto flex-col md:flex-row items-start md:items-center justify-between gap-4 mt-12 mb-12">

@@ -6,8 +6,8 @@ import Navbar from "../components/Navbar"
 
 function LandingPage() {
   return (
-   <div className="min-h-screen w-full  bg-[#000000]/98 opacity-99">
-    <BgBoss opacity="opacity-8" />
+   <div className="min-h-screen w-full  bg-[#000000]/98 opacity-99 ">
+    <BgBoss opacity="opacity-10" />
 
     {/* Navbar */}
     <Navbar />
