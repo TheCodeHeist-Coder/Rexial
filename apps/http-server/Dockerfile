@@ -1,6 +1,7 @@
-FROM node:20-alpine
+FROM node:22-alpine
 
 RUN npm i -g pnpm
+
 
 # set working directory at repo root
 WORKDIR /app
