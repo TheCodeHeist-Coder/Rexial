@@ -44,94 +44,111 @@ function Login() {
 
 
     return (
-        <div className="min-h-screen w-full  bg-[#000000]/98 opacity-99 ">
-            <BgBoss opacity="opacity-8" />
+        <div className="min-h-screen w-full bg-[#000000]/98 opacity-99">
+  <BgBoss opacity="opacity-10" />
 
+  <div className="w-full min-h-screen flex flex-col items-center justify-center px-4 sm:px-6">
 
-            <div className="w-full min-h-screen flex flex-col items-center justify-center ">
+    {/* Heading */}
+    <div className="flex flex-col gap-2 sm:gap-3 mb-6 sm:mb-8 text-center">
 
+      <p className="uppercase tracking-wider font-secondary text-pink-600 text-md sm:text-xl font-bold">
+        Welcome back
+      </p>
 
-                <div className="flex flex-col gap-3 mb-8">
-                    <p className=" uppercase tracking-wider font-secondary text-pink-600 text-lg font-bold mb-2 pl-2 text-center"> Welcome back </p>
+      <h1 className="text-4xl sm:text-5xl md:text-7xl font-secondary font-extrabold text-gray-100 tracking-wide">
+        Midnight <span className="text-pink-400 drop-shadow-md drop-shadow-pink-950">Pulse</span>
+      </h1>
 
+      <p className="font-main text-md sm:text-sm md:text-lg text-gray-400 tracking-wide max-w-md mx-auto">
+        Sign in to continue your journey into the kinetic archive.
+      </p>
 
+    </div>
 
-                    <h1 className=" text-6xl font-secondary font-extrabold text-gray-100 text-center tracking-wide"> Midnight <span className="text-pink-400 drop-shadow-md drop-shadow-pink-950"> Pulse </span> </h1>
+    {/* Card */}
+    <div className="border border-gray-800 shadow-md shadow-rose-600 py-6 sm:py-10 bg-[#20201F]/60 px-4 sm:px-8 w-full max-w-md rounded-2xl sm:rounded-3xl">
 
+      {/* Google */}
+      <div className="text-center text-gray-50 border border-gray-500 rounded-full py-2 sm:py-3 px-2 mb-4 sm:mb-5 text-sm sm:text-base">
+        Login With Google
+      </div>
 
+      {/* Divider */}
+      <div className="flex items-center justify-center gap-3 my-4">
+        <div className="border-b border-gray-700 w-full"></div>
+        <p className="text-gray-500 text-xs sm:text-sm">OR</p>
+        <div className="border-b border-gray-700 w-full"></div>
+      </div>
 
-                    <p className="content font-main  text-sm font-medium text-gray-400 tracking-wider max-w-110 mt-2 text-center">Sign in to continue your journey into the kinetic archive.</p>
-                </div>
-
-
-
-
-                <div className="border mt-5 border-gray-800 shadow-md shadow-rose-600 py-10 bg-[#20201F]/60 px-12 w-2/8 rounded-4xl">
-
-                    <div className="withGoogle text-center text-gray-50 border border-gray-500 rounded-full py-3 px-2 mt-2 mb-5"> Login With Google </div>
-
-
-                    <div className="partition flex items-center justify-center gap-3 my-4 ">
-                        <div className="border-b border-gray-700 w-full">  </div>
-                        <p className="text-gray-500 font-medium tracking-wide"> OR </p>
-                        <div className="border-b border-gray-700 w-full">  </div>
-                    </div>
-
-                    {error && (
-                        <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg mb-6 text-sm text-center">
-                            {error}
-                        </div>
-                    )}
-
-                    <form onSubmit={handleSubmit} className="space-y-5 mt-8">
-                        <div className="flex flex-col gap-2">
-                            <label className="block text-lg font-light text-zinc-400 mb-1 ml-1 font-main tracking-wider">Email Address</label>
-                            <input
-                                type="email"
-                                value={email}
-                                onChange={e => setEmail(e.target.value)}
-                                className="input-field bg-black w-full text-gray-400 font-normal py-3 px-8 rounded-full  outline-none bg-none"
-                                placeholder="iamraj@google.com"
-                                required
-                            />
-                        </div>
-                        <div className="flex flex-col gap-2">
-                            <label className="block text-lg font-light text-zinc-400 mb-1 ml-1 font-main tracking-wider">Password</label>
-                            <input
-                                type="password"
-                                value={password}
-                                onChange={e => setPassword(e.target.value)}
-                                className="input-field bg-black w-full text-gray-400 font-normal py-3 px-8 rounded-full  outline-none"
-                                placeholder="••••••••"
-                                required
-                                minLength={6}
-                            />
-                        </div>
-
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full bg-linear-to-l from-pink-500 to-pink-700 text-xl font-semibold font-secondary tracking-wide cursor-pointer active:scale-95 transition duration-100 rounded-full btn-primary py-3 flex items-center justify-center gap-2 mt-12"
-                        >
-                            {loading ? <LuLoaderPinwheel
-                                className="w-5 h-5 animate-spin" /> : (
-                                <>Login <BsArrowRight className="w-4 h-4" /></>
-                            )}
-                        </button>
-                    </form>
-
-
-                    <div className="bottom">
-                        <p className="text-center text-gray-500 mt-6 font-main tracking-wide"> Don't have an account? <Link to={"/signup"} className="text-pink-500 font-secondary font-bold cursor-pointer "> Sign up </Link> </p>
-                    </div>
-
-
-                </div>
-            </div>
-
-
-
+      {/* Error */}
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-2 sm:p-3 rounded-lg mb-4 text-xs sm:text-sm text-center">
+          {error}
         </div>
+      )}
+
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5 mt-6">
+
+        {/* Email */}
+        <div>
+          <label className="block text-sm sm:text-base text-zinc-400 mb-1 font-main tracking-wide">
+            Email Address
+          </label>
+          <input
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            className="bg-black w-full text-gray-400 py-2 sm:py-3 px-4 sm:px-6 rounded-full outline-none text-sm sm:text-base"
+            placeholder="iamraj@google.com"
+            required
+          />
+        </div>
+
+        {/* Password */}
+        <div>
+          <label className="block text-sm sm:text-base text-zinc-400 mb-1 font-main tracking-wide">
+            Password
+          </label>
+          <input
+            type="password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            className="bg-black w-full text-gray-400 py-2 sm:py-3 px-4 sm:px-6 rounded-full outline-none text-sm sm:text-base"
+            placeholder="••••••••"
+            required
+            minLength={6}
+          />
+        </div>
+
+        {/* Button */}
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-linear-to-l from-pink-500 to-pink-700 text-sm sm:text-lg font-semibold font-secondary tracking-wide cursor-pointer active:scale-95 transition rounded-full py-2 sm:py-3 flex items-center justify-center gap-2 mt-6"
+        >
+          {loading ? (
+            <LuLoaderPinwheel className="w-4 h-4 animate-spin" />
+          ) : (
+            <>Login <BsArrowRight className="w-4 h-4" /></>
+          )}
+        </button>
+
+      </form>
+
+      {/* Bottom */}
+      <p className="text-center text-gray-500 mt-4 sm:mt-6 text-xs sm:text-sm font-main tracking-wide">
+        Don’t have an account?
+        <Link to={"/signup"} className="text-pink-500 font-secondary font-bold ml-1">
+          Sign up
+        </Link>
+      </p>
+
+    </div>
+
+  </div>
+</div>
     )
 }
 
