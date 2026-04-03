@@ -7,15 +7,24 @@ interface Iprops {
 
 function Steps({number, title, description}:Iprops) {
   return (
-    <div className=" py-6 flex mt-4 flex-col gap-4 border border-b-rose-600  hover:shadow-md  border-black/80 bg-zinc-900  px-6 rounded-2xl">
-        <div className="stepnumber font-special text-pink-300 pl-4"> {number} </div>
+   <div className="py-5 sm:py-6 flex flex-col gap-3 sm:gap-4 border border-b-rose-600 border-black/80 bg-zinc-900 px-4 sm:px-6 rounded-2xl hover:shadow-md transition duration-200">
 
-        <div className="title font-secondary font-semibold tracking-wide bg-clip-text text-transparent bg-linear-to-b from-pink-300 to-pink-500">  ' {title} ' </div>
+  {/* Step Number */}
+  <div className="stepnumber font-special text-pink-300 text-2xl sm:text-xl md:text-4xl">
+    {number}
+  </div>
 
-        <div className="about font-main text-gray-300 font-light text-[17px] tracking-wide  max-w-92"> {description} </div>
+  {/* Title */}
+  <div className="title font-secondary font-semibold tracking-wide bg-clip-text text-transparent bg-linear-to-b from-pink-300 to-pink-500 text-md sm:text-base md:text-2xl">
+    "{title}"
+  </div>
 
-    
-    </div>
+  {/* Description */}
+  <div className="about font-main text-gray-300 font-light text-xs sm:text-sm md:text-base tracking-wide leading-relaxed max-w-full sm:max-w-md">
+    {description}
+  </div>
+
+</div>
   )
 }
 

@@ -8,8 +8,8 @@ function Navbar() {
 
 
     return (
-        <div className="px-3 sm:px-4 py-4 sticky top-0 z-40">
-            <div className="nav bg-black/95 flex items-center justify-between px-4 sm:px-6 md:px-10 border border-b-rose-800 rounded-2xl sm:rounded-full max-w-7xl mx-auto h-14 sm:h-16">
+        <div className=" sm:px-4 z-40 fixed top-0 left-0 right-0 ">
+            <div className="nav bg-black/98 flex items-center justify-between px-6 sm:px-6 md:px-15 border border-b-rose-800 rounded-b-full sm:rounded-b-full max-w-7xl mx-auto h-14 sm:h-16">
 
                 {/* Logo */}
                 <div className="logo font-special text-xl sm:text-2xl md:text-4xl font-bold tracking-wider bg-clip-text text-transparent bg-linear-to-t from-pink-600 to-pink-300">
