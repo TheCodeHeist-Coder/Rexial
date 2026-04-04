@@ -189,9 +189,9 @@ export const generateAccessCodeController = async (req: Request, res: Response) 
 export const createQuestionController = async (req: Request, res: Response) => {
     try {
         const { quizId } = req.params;
-        const { text, timeLimit, asnwers } = req.body;
+        const { text, timeLimit, answers } = req.body;
 
-        if (!text || !timeLimit || !asnwers) return errorResponse(res, 400, "Text, time limit and answers are required")
+        if (!text || !timeLimit || !answers) return errorResponse(res, 400, "Text, time limit and answers are required")
 
         const isOrganizer = await prisma.quizOrganizer.findFirst({
             where: {
@@ -217,7 +217,7 @@ export const createQuestionController = async (req: Request, res: Response) => {
                 order: totalQuestions + 1,
                 quizId: quizId as string,
                 answers: {
-                    create: asnwers.map((answer: any) => ({
+                    create: answers.map((answer: any) => ({
                         text: answer.text,
                         isCorrect: answer.isCorrect
                     }))
