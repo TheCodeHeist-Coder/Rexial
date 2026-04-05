@@ -49,9 +49,15 @@ function QuizBuilder() {
 
   const handleGenerateCode = async () => {
     try {
+      setLoading(true);
+      const {data} = await api.post( `/quizzes/${id}/generate-access-code`);
+      setQuiz({...quiz, joinCode: data.joinCode, status:'ACTIVE'})
 
     } catch (error) {
+      console.log(error);
 
+    }finally{
+     setLoading(false);
     }
   }
 
@@ -122,11 +128,11 @@ function QuizBuilder() {
           <div className="flex items-center gap-3">
             {quiz?.joinCode ? (
               <div className="flex items-center gap-3 bg-primary/10 border border-primary/20 px-3 py-1.5 rounded-lg">
-                <span className="text-xs text-primary font-medium">CODE:</span>
-                <span className="font-mono font-bold tracking-widest">{quiz.joinCode}</span>
+                <span className=" text-primary font-extrabold text-gray-300 font-secondary text-2xl">CODE:</span>
+                <span className=" font-bold  font-special tracking-[1px] text-2xl bg-clip-text text-transparent bg-linear-to-b from-pink-400 to-pink-700">{quiz.joinCode}</span>
               </div>
             ) : (
-              <button onClick={handleGenerateCode} className="text-gray-50 flex items-center gap-2 py-1.5 text-sm">
+              <button onClick={handleGenerateCode} className=" cursor-pointer bg-green-700/30 hover:bg-green-700/40 shadow-sm shadow-green-800 font-secondary tracking-wider text-green-500 font-extrabold flex items-center gap-2 py-2 px-6 rounded-md border border-green-600/40 text-sm">
                 Generate Join Code
               </button>
             )}
