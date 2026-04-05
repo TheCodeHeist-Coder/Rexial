@@ -2,7 +2,7 @@ import { Link, useParams } from "react-router-dom"
 import BgBoss from "../components/BgBoss"
 import { BsArrowLeft, BsMailbox, BsTrash2 } from "react-icons/bs"
 import { api } from "../services/api"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { BiPlay, BiPlus, BiSave } from "react-icons/bi"
 import { RiMvAiLine } from "react-icons/ri"
 import { LuUserSearch } from "react-icons/lu"
@@ -25,6 +25,11 @@ function QuizBuilder() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteMsg, setInviteMsg] = useState('');
 
+
+
+  useEffect(() => {
+    fetchQuiz();
+  }, [])
 
 
   const fetchQuiz = async () => {
@@ -208,7 +213,7 @@ function QuizBuilder() {
                   </div>
                 </div>
                 <div className="grid sm:grid-cols-2 gap-6">
-                  {q.answers.map((a: any) => ( 
+                  {q.answers.map((a: any) => (
                     <div key={a.id} className={`px-3 py-4 font-secondary font-semibold tracking-wider  rounded text-sm border ${a.isCorrect ? 'bg-green-500/10 border-green-500/20 text-green-300' : 'bg-white/5 border-gray-800/60 text-zinc-400'}`}>
                       {a.text}
                     </div>
