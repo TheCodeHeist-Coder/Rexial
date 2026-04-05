@@ -1,13 +1,30 @@
 import { IoIosKey } from "react-icons/io"
 import Badge from "./Badge"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { GiFallingStar } from "react-icons/gi"
 import { BsWrenchAdjustable } from "react-icons/bs"
 import { useAuthStore } from "../store/authStore"
+import React, { useState } from "react"
+
 
 function HeroSection() {
 
     const { user } = useAuthStore();
+
+    const [code, setCode] = useState<string>('');
+
+
+
+    const navigate = useNavigate();
+
+
+    const handleCodeSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (code) {
+            navigate('/join', { state: { code } });
+        }
+    };
+
 
     return (
         <div className="text-white flex flex-col items-center mt-16 max-w-7xl mx-auto px-4 sm:px-6 pb-16 sm:pb-28 pt-6">
@@ -41,23 +58,27 @@ function HeroSection() {
             {/* Join Quiz */}
             <div className="joinQuiz w-full max-w-md sm:max-w-xl mt-10 sm:mt-14 bg-black py-3 px-2 rounded-full shadow-sm shadow-rose-600/30">
 
-                <div className="flex items-center justify-between gap-2 sm:gap-4">
+                <form onSubmit={handleCodeSubmit} className="flex items-center justify-between gap-2 sm:gap-4">
 
                     <div className="flex items-center gap-3 sm:gap-3 flex-1 px-2">
                         <IoIosKey className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400" />
 
                         <input
-                            className="py-2 sm:py-3 w-full bg-transparent outline-none text-sm sm:text-base"
+                            value={code}
+                            onChange={(e) => setCode(e.target.value.toUpperCase())}
+                            placeholder="e.g. CB02DY"
+                            className="py-2 sm:py-3 w-full bg-transparent outline-none text-lg font-special sm:text-base"
                             type="text"
-                            placeholder="Enter Quiz Code"
+                            maxLength={6}
+                            required
                         />
                     </div>
 
-                    <button className="bg-linear-to-l from-pink-400 to-pink-700 px-10 sm:px-12 py-5 sm:py-4 font-special tracking-wide text-gray-950 active:scale-95 transition duration-100 cursor-pointer rounded-full text-sm sm:text-lg whitespace-nowrap">
+                    <button type="submit" className="bg-linear-to-l from-pink-400 to-pink-700 px-10 sm:px-12 py-5 sm:py-4 font-special tracking-wide text-gray-950 active:scale-95 transition duration-100 cursor-pointer rounded-full text-sm sm:text-lg whitespace-nowrap">
                         Join
                     </button>
 
-                </div>
+                </form>
             </div>
 
             {/* Bottom Links */}
@@ -90,6 +111,10 @@ function HeroSection() {
                 </div>
 
             </div>
+
+
+
+
 
         </div>
     )
