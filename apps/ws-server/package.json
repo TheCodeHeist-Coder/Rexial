@@ -1,0 +1,21 @@
+{
+  "name": "ws-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc -b",
+    "dev": "tsc -b && node --watch dist/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@repo/db": "workspace:*",
+    "@types/ws": "^8.18.1",
+    "typescript": "^6.0.2",
+    "ws": "^8.20.0"
+  }
+}
