@@ -1,16 +1,17 @@
-import { Link, useParams } from "react-router-dom"
+import { Link, useNavigate, useParams } from "react-router-dom"
 import BgBoss from "../components/BgBoss"
 import { BsArrowLeft, BsMailbox, BsTrash2 } from "react-icons/bs"
 import { api } from "../services/api"
 import { useEffect, useState } from "react"
 import { BiPlay, BiPlus, BiSave } from "react-icons/bi"
-import { RiMvAiLine } from "react-icons/ri"
 import { LuUserSearch } from "react-icons/lu"
 
 
 function QuizBuilder() {
 
   const { id } = useParams();
+
+  const navigate = useNavigate();
 
   const [quiz, setQuiz] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false)
@@ -50,23 +51,31 @@ function QuizBuilder() {
   const handleGenerateCode = async () => {
     try {
       setLoading(true);
-      const {data} = await api.post( `/quizzes/${id}/generate-access-code`);
-      setQuiz({...quiz, joinCode: data.joinCode, status:'ACTIVE'})
+      const { data } = await api.post(`/quizzes/${id}/generate-access-code`);
+      setQuiz({ ...quiz, joinCode: data.joinCode, status: 'ACTIVE' })
 
     } catch (error) {
       console.log(error);
 
-    }finally{
-     setLoading(false);
+    } finally {
+      setLoading(false);
     }
   }
 
 
   const handleHostLive = async () => {
+    if (hosting) return alert("Quiz is already Hosted!")
+    setHosting(true)
     try {
+      const { data } = await api.post(`/quizzes/${id}/start-session`);
+      navigate(`/quiz/manage/${data.sessionId}`);
+
+
 
     } catch (error) {
-
+      alert('Failed to start session');
+      console.log(error);
+      setHosting(false);
     }
   }
 
@@ -133,14 +142,14 @@ function QuizBuilder() {
               </div>
             ) : (
               <button onClick={handleGenerateCode} className=" cursor-pointer bg-green-700/30 hover:bg-green-700/40 shadow-sm shadow-green-800 font-secondary tracking-wider text-green-500 font-extrabold flex items-center gap-2 py-2 px-6 rounded-md border border-green-600/40 text-sm">
-                Generate Join Code
+                {loading ? "Generating..." : "Generate Join Code"}
               </button>
             )}
             {quiz?.status === 'ACTIVE' && (
               <button
                 onClick={handleHostLive}
                 disabled={hosting || (quiz.questions?.length === 0)}
-                className="text-gray-50 flex items-center gap-2 py-1.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="text-gray-50 bg-green-500/30 hover:bg-green-500/40 cursor-pointer active:scale-95 px-6 rounded-md font-secondary font-extrabold tracking-widest border border-green-600/40 flex items-center gap-2 py-1.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 title={quiz.questions?.length === 0 ? 'Add at least one question first' : 'Host a live quiz session'}
               >
                 <BiPlay className="w-4 h-4 fill-current" />
