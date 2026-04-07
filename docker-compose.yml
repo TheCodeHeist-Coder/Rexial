@@ -11,6 +11,22 @@ services:
     depends_on:
       - backend
 
+  ws-server:
+    build:
+      context: .
+      dockerfile: apps/ws-server/Dockerfile
+    container_name: QtriveWsServer
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/Qtrive
+    command: sh -c "pnpm --filter @repo/db run db:generate && pnpm run dev"
+    depends_on:
+      db:
+        condition: service_healthy
+
   backend:
     build:
       context: .
