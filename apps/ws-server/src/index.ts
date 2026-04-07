@@ -101,18 +101,57 @@ const handleMessage = async (client: Client, data: any) => {
                 }
             })
 
-            if(!sessionId || !session?.quiz.questions[questionIndex]){
+            if (!sessionId || !session?.quiz.questions[questionIndex]) {
                 // now no more question- end quiz and clean up
-               await endQuizSession(sessionId);
-               broadcastToSession(sessionId, 'quiz:ended');
-               return;    
+                await endQuizSession(sessionId);
+                broadcastToSession(sessionId, 'quiz:ended');
+                return;
             };
+
+            const question = session.quiz.questions[questionIndex];
+
+            await prisma.quizSession.update({
+                where: { id: sessionId },
+                data: { currentQuestionIndex: questionIndex }
+            });
+
+            // without revealing answers
+            const sanitizedQuestion = {
+                ...question,
+                answers: question.answers.map((ans) => ({
+                    id: ans.id,
+                    text: ans.text
+                }))
+            }
+
+            broadcastToSession(sessionId, 'quiz:question', { question: sanitizedQuestion })
+
+            // start timer
+            let timeleft = question.timeLimit;
+            if (sessionTimers.has(sessionId)) {
+                clearInterval(sessionTimers.get(sessionId));
+            }
+
+            broadcastToSession(sessionId, 'quiz:timer-tick', { timeleft });
+
+            const timer = setInterval(async () => {
+                timeleft--;
+                broadcastToSession(sessionId, 'quiz:timer-tick', { timeleft });
+
+                if (timeleft <= 0) {
+                    clearInterval(timer);
+                    sessionTimers.delete(sessionId);
+                }
+
+                // now broadcasting result sna leaderboard
+                const leaderboard = await getLeaderboard(sessionId);
+                broadcastToSession(sessionId, 'quiz:question-results', { correctAnswers: question.answers.filter((ans) => ans.isCorrect).map(ans => ans.id) })
+                setTimeout(() => broadcastToSession(sessionId, 'quiz:leaderboard', { leaderboard }), 2000);
+            }, 1000)
+
+            sessionTimers.set(sessionId, timer);
+            break;
         }
-
-
-
-
-
 
     }
 }
@@ -134,18 +173,26 @@ function broadcastToSession(sessionId: string, type: string, payload: any = {}) 
 
 
 async function endQuizSession(sessionId: string) {
-  // Mark session as completed
-  const session = await prisma.quizSession.update({
-    where: { id: sessionId },
-    data: { status: 'COMPLETED', endedAt: new Date() },
-    include: { quiz: true }
-  });
+    // Mark session as completed
+    const session = await prisma.quizSession.update({
+        where: { id: sessionId },
+        data: { status: 'COMPLETED', endedAt: new Date() },
+        include: { quiz: true }
+    });
 
-  // Clear join code and set quiz to COMPLETED so no one can join again
-  await prisma.quiz.update({
-    where: { id: session.quizId },
-    data: { joinCode: null, status: 'COMPLETED' }
-  });
+    // Clear join code and set quiz to COMPLETED so no one can join again
+    await prisma.quiz.update({
+        where: { id: session.quizId },
+        data: { joinCode: null, status: 'COMPLETED' }
+    });
 }
 
 
+async function getLeaderboard(sessionId: string) {
+    return await prisma.participant.findMany({
+        where: { sessionId },
+        orderBy: { score: 'desc' },
+        select: { id: true, username: true, score: true }
+    });
+
+}
