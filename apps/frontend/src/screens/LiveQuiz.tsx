@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { LuUserSearch } from "react-icons/lu";
 import { getAvatar, getAvatarColor } from "../utils/Avatars";
 import { BiCheckCircle, BiTrophy, BiXCircle } from "react-icons/bi";
+import BgBoss from "../components/BgBoss";
+import { FaSpinner } from "react-icons/fa6";
 
 
 
@@ -23,13 +25,13 @@ interface LiveQuizProps {
 }
 
 
-function LiveQuiz({isOrganizer = false}: LiveQuizProps) {
+function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
 
-  const {sessionId} = useParams();
+  const { sessionId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const {user} = useAuthStore();
+  const { user } = useAuthStore();
 
   const participantId = location.state?.participantId;
   const username = location.state?.username;
@@ -41,64 +43,64 @@ function LiveQuiz({isOrganizer = false}: LiveQuizProps) {
   const [timeLeft, setTimeLeft] = useState(0);
   const [correctAnswers, setCorrectAnswers] = useState<string[]>([]);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
-  
 
-    
+
+
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [questionStartTime, setQuestionStartTime] = useState<number>(0);
   const [qIndex, setQIndex] = useState(0);
 
-   
-   // if participant is missing, kick them out
+
+  // if participant is missing, kick them out
   useEffect(() => {
-    if(!isOrganizer && !participantId){
+    if (!isOrganizer && !participantId) {
       navigate('/join');
       return;
     }
- 
-
-  let socket:WebSocket | null = null;
-  let isMounted = true;
 
 
-  const wsHost = 'ws://localhost:8080/';
-                
-                  
+    let socket: WebSocket | null = null;
+    let isMounted = true;
 
-   const initWebSocket = () => {
-    if(!isMounted) return;
 
-    socket = new WebSocket(wsHost);
+    const wsHost = 'ws://localhost:8080/';
 
-    socket.onopen = () => {
-          
-      if(!sessionId){
-        console.log("Session is not initiated. Try again...")
-        return;
-      }
 
-  
 
-      socket?.send(JSON.stringify({
-        type: 'join',
-        payload: {
-          sessionId,
-          role: isOrganizer ? 'ORGANIZER': 'PARTICIPANT',
-          participantId: isOrganizer ? undefined : participantId,
-          userId: user?.id
+    const initWebSocket = () => {
+      if (!isMounted) return;
+
+      socket = new WebSocket(wsHost);
+
+      socket.onopen = () => {
+
+        if (!sessionId) {
+          console.log("Session is not initiated. Try again...")
+          return;
         }
-      }));
 
-      console.log("JOin sent...")
-    };
 
-      
-       socket.onmessage = (event) => {
 
-         console.log("WS MESSAGE:", event.data);
+        socket?.send(JSON.stringify({
+          type: 'join',
+          payload: {
+            sessionId,
+            role: isOrganizer ? 'ORGANIZER' : 'PARTICIPANT',
+            participantId: isOrganizer ? undefined : participantId,
+            userId: user?.id
+          }
+        }));
+
+        console.log("JOin sent...")
+      };
+
+
+      socket.onmessage = (event) => {
+
+        console.log("WS MESSAGE:", event.data);
 
         const { type, payload } = JSON.parse(event.data);
-        
+
         switch (type) {
           case 'participants:sync':
             setParticipants(payload.participants);
@@ -147,7 +149,7 @@ function LiveQuiz({isOrganizer = false}: LiveQuizProps) {
       isMounted = false;
       clearTimeout(timeoutId);
       if (socket) {
-        if (socket.readyState === 0) { 
+        if (socket.readyState === 0) {
           socket.onopen = () => socket?.close();
         } else {
           socket.close();
@@ -155,61 +157,60 @@ function LiveQuiz({isOrganizer = false}: LiveQuizProps) {
       }
     };
 
-     }, [sessionId, isOrganizer]);
+  }, [sessionId, isOrganizer]);
 
 
-    const handleStart = () => {
-      ws?.send(JSON.stringify({type: 'quiz:start', payload: {sessionId}}));
-    };
+  const handleStart = () => {
+    ws?.send(JSON.stringify({ type: 'quiz:start', payload: { sessionId } }));
+  };
 
-    const handleNext = () => {
-      const nextIdx = qIndex + 1;
-      setQIndex(nextIdx);
-      ws?.send(JSON.stringify({
-        type: 'quiz:next-question',
-        payload: {
-          sessionId,
-          questionIndex: nextIdx
-        }
-      }))
-    };
-
-
-    const handleAnswer = (answerId: string) => {
-      if(selectedAnswer || gameState !== GameState.QUESTION) return;
-
-      setSelectedAnswer(answerId);
-      const timeMs = Date.now() - questionStartTime;
-
-      ws?.send(JSON.stringify({
-        type: 'quiz:submit-answer',
-        payload: {
-          sessionId,
-          participantId,
-          questionId: currentQuestion.id,
-          answerId,
-          timeMs
-        }
-      }))
-    }
+  const handleNext = () => {
+    const nextIdx = qIndex + 1;
+    setQIndex(nextIdx);
+    ws?.send(JSON.stringify({
+      type: 'quiz:next-question',
+      payload: {
+        sessionId,
+        questionIndex: nextIdx
+      }
+    }))
+  };
 
 
+  const handleAnswer = (answerId: string) => {
+    if (selectedAnswer || gameState !== GameState.QUESTION) return;
 
-    if(gameState === GameState.WAITING) {
+    setSelectedAnswer(answerId);
+    const timeMs = Date.now() - questionStartTime;
 
-   return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-surface relative overflow-hidden p-6">
-        <div className="absolute inset-0 bg-linear-to-br from-primary/10 to-accent/10 z-0" />
-        
+    ws?.send(JSON.stringify({
+      type: 'quiz:submit-answer',
+      payload: {
+        sessionId,
+        participantId,
+        questionId: currentQuestion.id,
+        answerId,
+        timeMs
+      }
+    }))
+  }
+
+
+
+  if (gameState === GameState.WAITING) {
+
+    return (
+      <div className="min-h-screen flex flex-col items-center bg-[#000000]/98 opacity-99 justify-center bg-surface relative overflow-hidden p-6">
+        <BgBoss opacity="opacity-5" />
         <div className="z-10 text-center mb-12">
           {isOrganizer ? (
             <>
-              <h1 className="text-4xl font-black uppercase tracking-tight mb-2 text-white">Get Ready to Play!</h1>
-              <p className="text-zinc-400 mb-8 max-w-md mx-auto">Tell players to go to <span className="font-mono text-white bg-white/10 px-2 py-1 rounded">localhost:5173/join</span></p>
-              <button 
-                onClick={handleStart} 
+              <h1 className="text-3xl sm:text-5xl  uppercase  mb-5 font-secondary bg-clip-text text-transparent bg-linear-to-b from-pink-500 to-pink-700 font-extrabold tracking-wider">Get Ready to Play!</h1>
+
+              <button
+                onClick={handleStart}
                 disabled={participants.length === 0}
-                className="btn-primary py-4 px-12 text-xl shadow-[0_0_40px_rgba(139,92,246,0.3)] hover:shadow-[0_0_60px_rgba(139,92,246,0.5)] transition-all font-bold uppercase tracking-widest disabled:opacity-50"
+                className="btn-primary py-4 px-12 rounded-lg text-xl bg-linear-to-t from-pink-600 to-pink-500 hover:from-pink-800/90 font-secondary transition duration-200  cursor-pointer  font-extrabold uppercase tracking-wider disabled:opacity-50"
               >
                 Start Game
               </button>
@@ -218,50 +219,50 @@ function LiveQuiz({isOrganizer = false}: LiveQuizProps) {
             <>
               <div
                 key={user?.id || 'participant'}
-                
-                className={`w-24 h-24 rounded-3xl bg-linnear-to-br ${getAvatarColor(participantId || 'default')} p-1 shadow-2xl mx-auto mb-6 overflow-hidden`}
+
+                className={`w-28 h-28 rounded-3xl bg-linnear-to-br bg-linear-to-t from-pink-800/40 to-transparent p-1 shadow-2xl mx-auto mb-6 `}
               >
-                <img src={getAvatar(participantId || 'default')} alt="avatar" className="w-full h-full object-cover" />
+                <img src={getAvatar(participantId || 'default')} alt="avatar" className="w-full h-full object-cover animate-[bounce_1.6s_infinite]" />
               </div>
-              <h1 className="text-3xl font-bold mb-2">You're in, {username}!</h1>
-              <p className="text-zinc-400">Waiting for host to start...</p>
+              <h1 className="text-5xl font-bold mb-2 text-gray-300 font-secondary">You're in, <span className="bg-clip-text text-transparent bg-linear-to-t bg-pink-500 from-pink-700">  {username}! </span></h1>
+              <p className="text-zinc-300 tracking-wider text-lg flex items-center justify-center gap-4">Waiting for host to start <span className="animate-spin"> <FaSpinner className="text-pink-600 w-6 h-6" /> </span> </p>
             </>
           )}
         </div>
 
         {isOrganizer && (
           <div className="z-10 w-full max-w-4xl">
-            <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-4">
-              <h3 className="font-bold flex items-center gap-2"><LuUserSearch className="w-5 h-5 text-accent"/> Players ({participants.length})</h3>
+            <div className="flex items-center justify-between mb-4 border-b border-pink-600/30 pb-4">
+              <h3 className="font-bold flex items-center gap-2 font-secondary text-gray-300 tracking-wider text-xl"><LuUserSearch className="w-5 h-5 text-accent" /> Players ({participants.length})</h3>
             </div>
             <div className="flex flex-wrap gap-3">
-              
-                  {participants.map(p => (
-                  <div 
-                  
-                    key={p.id}
-                    className="flex flex-col items-center gap-2"
-                  >
-                    <div className={`w-14 h-14 rounded-2xl bg-linear-to-br ${getAvatarColor(p.id)} p-1 shadow-lg border border-white/10 overflow-hidden`}>
-                      <img src={getAvatar(p.id)} alt={p.username} className="w-full h-full object-cover" />
-                    </div>
-                    <span className="text-xs font-bold text-center max-w-20 truncate">{p.username}</span>
+
+              {participants.map(p => (
+                <div
+
+                  key={p.id}
+                  className="flex flex-col items-center gap-2"
+                >
+                  <div className={`w-18 h-18 rounded-2xl bg-linear-to-br ${getAvatarColor(p.id)} p-1 shadow-lg border border-white/10 overflow-hidden`}>
+                    <img src={getAvatar(p.id)} alt={p.username} className="w-full h-full object-cover" />
                   </div>
-                ))}
-              {participants.length === 0 && <span className="text-zinc-500 italic">Waiting for players to join...</span>}
+                  <span className="text-xl text-gray-400 font-light tracking-wider text-center max-w-20 font-secondary">{p.username}</span>
+                </div>
+              ))}
+              {participants.length === 0 && <span className="text-zinc-500 italic tracking-wide text-lg">Waiting for players to join...</span>}
             </div>
           </div>
         )}
       </div>
     );
-    }
+  }
 
 
-       if (gameState === GameState.STARTING) {
+  if (gameState === GameState.STARTING) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-primary">
-        <h1 
-          
+        <h1
+
           className="text-8xl font-black text-white italic tracking-tighter shadow-black drop-shadow-2xl"
         >
           GET READY!
@@ -290,10 +291,10 @@ function LiveQuiz({isOrganizer = false}: LiveQuizProps) {
             const isSelected = selectedAnswer === answer.id;
             const isCorrect = correctAnswers.includes(answer.id);
             const showResults = gameState === GameState.RESULTS;
-            
+
             let bgClass = "bg-surface hover:bg-white/5 border-border";
             let opacityClass = showResults && !isCorrect ? "opacity-50" : "opacity-100";
-            
+
             if (showResults) {
               if (isCorrect) bgClass = "bg-green-500 border-green-400 text-white shadow-[0_0_30px_rgba(34,197,94,0.4)]";
               else if (isSelected && !isCorrect) bgClass = "bg-red-500/20 border-red-500/50 text-red-200";
@@ -304,7 +305,7 @@ function LiveQuiz({isOrganizer = false}: LiveQuizProps) {
 
             return (
               <button
-  
+
                 onClick={() => handleAnswer(answer.id)}
                 disabled={Boolean(selectedAnswer) || showResults}
                 className={`min-h-30 p-6 rounded-2xl border-2 text-xl font-bold flex items-center justify-center text-center transition-all ${bgClass} ${opacityClass}`}
@@ -326,35 +327,35 @@ function LiveQuiz({isOrganizer = false}: LiveQuizProps) {
     );
   }
 
-    if (gameState === GameState.LEADERBOARD) {
+  if (gameState === GameState.LEADERBOARD) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-surface relative overflow-hidden">
         <div className="absolute top-0 w-full h-1/2 bg-linear-to-b from-primary/20 to-transparent" />
-        
+
         <h1 className="text-4xl font-bold mb-12 z-10 flex items-center gap-3">
           <BiTrophy className="w-10 h-10 text-yellow-500" /> Leaderboard
         </h1>
 
         <div className="w-full max-w-2xl space-y-3 z-10">
-         
-            {leaderboard.slice(0, 5).map((player, idx) => (
-              <div 
-                key={player.id}
-               
-                
-                className={`flex items-center justify-between p-4 rounded-xl border ${idx === 0 ? 'bg-yellow-500/20 border-yellow-500/50 transform scale-105 shadow-xl' : 'bg-background border-white/10'}`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className={`font-black text-2xl w-8 ${idx === 0 ? 'text-yellow-500' : idx === 1 ? 'text-zinc-300' : idx === 2 ? 'text-amber-700' : 'text-zinc-500'}`}>#{idx + 1}</span>
-                  <div className={`w-10 h-10 rounded-xl bg-linear-to-br ${getAvatarColor(player.id)} p-0.5 shadow overflow-hidden`}>
-                    <img src={getAvatar(player.id)} alt={player.username} className="w-full h-full object-cover" />
-                  </div>
-                  <span className="font-bold text-lg">{player.username}</span>
+
+          {leaderboard.slice(0, 5).map((player, idx) => (
+            <div
+              key={player.id}
+
+
+              className={`flex items-center justify-between p-4 rounded-xl border ${idx === 0 ? 'bg-yellow-500/20 border-yellow-500/50 transform scale-105 shadow-xl' : 'bg-background border-white/10'}`}
+            >
+              <div className="flex items-center gap-3">
+                <span className={`font-black text-2xl w-8 ${idx === 0 ? 'text-yellow-500' : idx === 1 ? 'text-zinc-300' : idx === 2 ? 'text-amber-700' : 'text-zinc-500'}`}>#{idx + 1}</span>
+                <div className={`w-10 h-10 rounded-xl bg-linear-to-br ${getAvatarColor(player.id)} p-0.5 shadow overflow-hidden`}>
+                  <img src={getAvatar(player.id)} alt={player.username} className="w-full h-full object-cover" />
                 </div>
-                <span className="font-mono font-bold text-xl">{player.score}</span>
+                <span className="font-bold text-lg">{player.username}</span>
               </div>
-            ))}
-          
+              <span className="font-mono font-bold text-xl">{player.score}</span>
+            </div>
+          ))}
+
         </div>
 
         {isOrganizer && (
@@ -369,7 +370,7 @@ function LiveQuiz({isOrganizer = false}: LiveQuizProps) {
 
 
 
-    if (gameState === GameState.ENDED) {
+  if (gameState === GameState.ENDED) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-background">
         <BiTrophy className="w-24 h-24 text-yellow-500 mb-6 drop-shadow-2xl" />
@@ -396,17 +397,17 @@ function LiveQuiz({isOrganizer = false}: LiveQuizProps) {
       </div>
     );
   }
-  
+
 
   return null;
 
 
 
 
-          
 
 
-    
+
+
 
 
 }
