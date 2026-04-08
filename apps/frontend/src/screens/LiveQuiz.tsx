@@ -260,10 +260,11 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
 
   if (gameState === GameState.STARTING) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-primary">
+      <div className="min-h-screen bg-[#000000]/98 opacity-99 flex items-center justify-center bg-primary">
+        <BgBoss opacity="opacity-5" />
         <h1
 
-          className="text-8xl font-black text-white italic tracking-tighter shadow-black drop-shadow-2xl"
+          className="text-8xl font-black bg-clip-text text-transparent bg-linear-to-b from-pink-500 to-pink-700 italic tracking-wide shadow-black drop-shadow-2xl"
         >
           GET READY!
         </h1>
