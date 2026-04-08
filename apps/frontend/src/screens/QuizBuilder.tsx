@@ -30,14 +30,13 @@ function QuizBuilder() {
 
   useEffect(() => {
     fetchQuiz();
-  }, [])
+  }, [id]);
 
 
   const fetchQuiz = async () => {
     try {
       setLoading(true);
       const { data } = await api.get(`/quizzes/${id}`);
-      console.log(id)
       setQuiz(data);
     } catch (error) {
       console.log(error);
@@ -65,10 +64,11 @@ function QuizBuilder() {
 
   const handleHostLive = async () => {
     if (hosting) return alert("Quiz is already Hosted!")
-    setHosting(true)
+    setHosting(true);
     try {
       const { data } = await api.post(`/quizzes/${id}/start-session`);
-      navigate(`/quiz/manage/${data.sessionId}`);
+      console.log("Api data is", data);
+      navigate(`/quiz/manage/${data.sessonId}`);
 
 
 

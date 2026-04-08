@@ -8,7 +8,7 @@ import { getLeaderboard } from "./leaderboard.js";
 
 
 
-const handleMessage = async (client: Client, data: any) => {
+export const handleMessage = async (client: Client, data: any) => {
     const { type, payload } = data;
 
     switch (type) {
@@ -32,6 +32,11 @@ const handleMessage = async (client: Client, data: any) => {
                 const participant = await prisma.participant.findUnique({
                     where: { id: participantId }
                 });
+
+                const participants = await prisma.participant.findMany({
+                    where: {sessionId}
+                });
+                 broadcastToSession(sessionId, 'participants:sync', { participants });
 
                 broadcastToSession(sessionId, 'participant:joined', { participant });
             }

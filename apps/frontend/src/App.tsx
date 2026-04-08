@@ -19,6 +19,7 @@ function App() {
         <Route path='/login' element={<Login />} />
         <Route path='/join' element={<JoinQuiz />} />
         <Route path='/quiz/play/:sessionId' element={<LiveQuiz />} />
+        <Route path='quiz/manage/:sessionId' element={<LiveQuiz isOrganizer />} />
         <Route path='/dashboard' element={<ProtectedRoute> <Dashboard /> </ProtectedRoute>} />
         <Route path='/quiz/:id/edit' element={<ProtectedRoute> <QuizBuilder /> </ProtectedRoute>} />
 

@@ -31,8 +31,8 @@ function LiveQuiz({isOrganizer = false}: LiveQuizProps) {
 
   const {user} = useAuthStore();
 
-  const participantId = location.state.participantId;
-  const username = location.state.username;
+  const participantId = location.state?.participantId;
+  const username = location.state?.username;
 
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [gameState, setGameState] = useState<GameState>('WAITING');
@@ -61,11 +61,9 @@ function LiveQuiz({isOrganizer = false}: LiveQuizProps) {
   let isMounted = true;
 
 
-  const wsHost = (import.meta as any).env.VITE_WS_URL ||
-                 (window.location.hostname === 'localhost'
-                  ? 'ws://localhost:8080'
-                  : `ws//${window.location.hostname}:8080`
-                 );
+  const wsHost = 'ws://localhost:8080/';
+                
+                  
 
    const initWebSocket = () => {
     if(!isMounted) return;
@@ -73,6 +71,14 @@ function LiveQuiz({isOrganizer = false}: LiveQuizProps) {
     socket = new WebSocket(wsHost);
 
     socket.onopen = () => {
+          
+      if(!sessionId){
+        console.log("Session is not initiated. Try again...")
+        return;
+      }
+
+  
+
       socket?.send(JSON.stringify({
         type: 'join',
         payload: {
@@ -82,10 +88,15 @@ function LiveQuiz({isOrganizer = false}: LiveQuizProps) {
           userId: user?.id
         }
       }));
+
+      console.log("JOin sent...")
     };
 
       
        socket.onmessage = (event) => {
+
+         console.log("WS MESSAGE:", event.data);
+
         const { type, payload } = JSON.parse(event.data);
         
         switch (type) {
@@ -95,7 +106,7 @@ function LiveQuiz({isOrganizer = false}: LiveQuizProps) {
           case 'participant:joined':
             setParticipants(participant => [...participant, payload.participant].filter((v, i, a) => a.findIndex(t => t.id === v.id) === i));
             break;
-          case 'quiz:started':
+          case 'quiz:start':
             setGameState(GameState.STARTING);
             setTimeout(() => {
               if (isOrganizer) socket?.send(JSON.stringify({ type: 'quiz:next-question', payload: { sessionId, questionIndex: 0 } }));
