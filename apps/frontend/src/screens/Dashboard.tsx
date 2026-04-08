@@ -60,10 +60,7 @@ function Dashboard() {
     }
   };
 
-  const handleCreateModalSubmit = async (e: React.FormEvent) => {
-    await handleCreate(e);
-  };
-
+ 
 
 
 
@@ -129,7 +126,7 @@ function Dashboard() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-surface border border-white/10 rounded-2xl p-8 max-w-md w-full mx-4">
             <h2 className="text-2xl font-bold mb-4">Create New Quiz</h2>
-            <form onSubmit={handleCreateModalSubmit}>
+            <form onSubmit={handleCreate}>
               <input
                 type="text"
                 placeholder="Quiz title"
@@ -288,19 +285,7 @@ function Dashboard() {
 
 
 
-      {/* organized quizzes */}
-
-      <div className="organized-quizzes ">
-
-
-      </div>
-
-
-      {/* participated quiz */}
-
-      <div className="participated quiz ">
-
-      </div>
+  
 
     </div>
   )

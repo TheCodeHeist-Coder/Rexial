@@ -1,5 +1,6 @@
 import WebSocket, { WebSocketServer } from 'ws';
 import { clients } from './clients/index.js';
+import { handleMessage } from './utils/handleMessages.js';
 
 
 
@@ -22,6 +23,7 @@ export interface Client {
 
 wss.on('connection', (ws: WebSocket) => {
 
+
     const client: Client = {
         ws,
         sessionId: '',
@@ -30,9 +32,16 @@ wss.on('connection', (ws: WebSocket) => {
     clients.add(client);
 
 
-    ws.on('message', async (message: string) => {
+    ws.on('message', async (message) => {
         try {
-            const data = JSON.parse(message);
+            const parsedMessage = message.toString();
+
+            console.log("Raw Message", parsedMessage)
+
+            const data = JSON.parse(parsedMessage);
+            
+            await handleMessage(client,data);
+                
 
         } catch (error) {
             console.log('WS Error', error)
