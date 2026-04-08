@@ -1,7 +1,9 @@
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { useEffect, useState } from "react";
 import { LuUserSearch } from "react-icons/lu";
+import { getAvatar, getAvatarColor } from "../utils/Avatars";
+import { BiCheckCircle, BiTrophy, BiXCircle } from "react-icons/bi";
 
 
 
@@ -186,7 +188,7 @@ function LiveQuiz({isOrganizer = false}: LiveQuizProps) {
 
    return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-surface relative overflow-hidden p-6">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-accent/10 z-0" />
+        <div className="absolute inset-0 bg-linear-to-br from-primary/10 to-accent/10 z-0" />
         
         <div className="z-10 text-center mb-12">
           {isOrganizer ? (
@@ -241,12 +243,151 @@ function LiveQuiz({isOrganizer = false}: LiveQuizProps) {
         )}
       </div>
     );
-
-
-
-
     }
+
+
+       if (gameState === GameState.STARTING) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-primary">
+        <h1 
+          
+          className="text-8xl font-black text-white italic tracking-tighter shadow-black drop-shadow-2xl"
+        >
+          GET READY!
+        </h1>
+      </div>
+    );
+  }
+
+
+
+
+  if (gameState === GameState.QUESTION || gameState === GameState.RESULTS) {
+    return (
+      <div className="min-h-screen flex flex-col pt-8 px-6 pb-24 max-w-5xl mx-auto">
+        <div className="flex justify-between items-center mb-12">
+          <div className="font-bold text-xl text-zinc-400">Question {qIndex + 1}</div>
+          <div className={`w-16 h-16 rounded-full flex items-center justify-center text-3xl font-black border-4 ${timeLeft <= 5 ? 'border-red-500 text-red-500 animate-pulse' : 'border-primary text-primary'}`}>
+            {timeLeft}
+          </div>
+        </div>
+
+        <h2 className="text-3xl md:text-5xl font-bold text-center mb-16 px-4 leading-tight">{currentQuestion?.text}</h2>
+
+        <div className="grid sm:grid-cols-2 gap-4 md:gap-6 mt-auto">
+          {currentQuestion?.answers.map((answer: any, i: number) => {
+            const isSelected = selectedAnswer === answer.id;
+            const isCorrect = correctAnswers.includes(answer.id);
+            const showResults = gameState === GameState.RESULTS;
+            
+            let bgClass = "bg-surface hover:bg-white/5 border-border";
+            let opacityClass = showResults && !isCorrect ? "opacity-50" : "opacity-100";
+            
+            if (showResults) {
+              if (isCorrect) bgClass = "bg-green-500 border-green-400 text-white shadow-[0_0_30px_rgba(34,197,94,0.4)]";
+              else if (isSelected && !isCorrect) bgClass = "bg-red-500/20 border-red-500/50 text-red-200";
+              else bgClass = "bg-surface border-border";
+            } else if (isSelected) {
+              bgClass = "bg-primary border-primary text-white shadow-[0_0_20px_rgba(139,92,246,0.3)]";
+            }
+
+            return (
+              <button
   
+                onClick={() => handleAnswer(answer.id)}
+                disabled={Boolean(selectedAnswer) || showResults}
+                className={`min-h-30 p-6 rounded-2xl border-2 text-xl font-bold flex items-center justify-center text-center transition-all ${bgClass} ${opacityClass}`}
+              >
+                {answer.text}
+                {showResults && isCorrect && <BiCheckCircle className="absolute right-4 w-6 h-6 opacity-80" />}
+                {showResults && isSelected && !isCorrect && <BiXCircle className="absolute right-4 w-6 h-6 opacity-80" />}
+              </button>
+            );
+          })}
+        </div>
+
+        {gameState === GameState.RESULTS && isOrganizer && (
+          <div className="fixed bottom-0 left-0 w-full p-6 bg-background/80 backdrop-blur-md border-t border-white/10 flex justify-end">
+            <button onClick={handleNext} className="btn-primary py-3 px-8 text-lg font-bold">Show Standings →</button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+    if (gameState === GameState.LEADERBOARD) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-surface relative overflow-hidden">
+        <div className="absolute top-0 w-full h-1/2 bg-linear-to-b from-primary/20 to-transparent" />
+        
+        <h1 className="text-4xl font-bold mb-12 z-10 flex items-center gap-3">
+          <BiTrophy className="w-10 h-10 text-yellow-500" /> Leaderboard
+        </h1>
+
+        <div className="w-full max-w-2xl space-y-3 z-10">
+         
+            {leaderboard.slice(0, 5).map((player, idx) => (
+              <div 
+                key={player.id}
+               
+                
+                className={`flex items-center justify-between p-4 rounded-xl border ${idx === 0 ? 'bg-yellow-500/20 border-yellow-500/50 transform scale-105 shadow-xl' : 'bg-background border-white/10'}`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className={`font-black text-2xl w-8 ${idx === 0 ? 'text-yellow-500' : idx === 1 ? 'text-zinc-300' : idx === 2 ? 'text-amber-700' : 'text-zinc-500'}`}>#{idx + 1}</span>
+                  <div className={`w-10 h-10 rounded-xl bg-linear-to-br ${getAvatarColor(player.id)} p-0.5 shadow overflow-hidden`}>
+                    <img src={getAvatar(player.id)} alt={player.username} className="w-full h-full object-cover" />
+                  </div>
+                  <span className="font-bold text-lg">{player.username}</span>
+                </div>
+                <span className="font-mono font-bold text-xl">{player.score}</span>
+              </div>
+            ))}
+          
+        </div>
+
+        {isOrganizer && (
+          <div className="fixed bottom-0 left-0 w-full p-6 bg-background/80 backdrop-blur-md border-t border-white/10 flex justify-center">
+            <button onClick={handleNext} className="btn-primary py-4 px-12 text-lg font-bold uppercase tracking-widest shadow-xl">Next Question</button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+
+
+
+    if (gameState === GameState.ENDED) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-background">
+        <BiTrophy className="w-24 h-24 text-yellow-500 mb-6 drop-shadow-2xl" />
+        <h1 className="text-5xl font-black uppercase tracking-widest mb-12">Quiz Finished!</h1>
+
+        <div className="w-full max-w-xl space-y-4">
+          {leaderboard.slice(0, 3).map((player, idx) => (
+            <div key={player.id} className={`flex justify-between items-center p-5 rounded-2xl ${idx === 0 ? 'bg-linear-to-r from-yellow-500/20 to-amber-500/20 border border-yellow-500/30 text-yellow-500' : 'bg-surface border border-white/5'}`}>
+              <div className="flex items-center gap-4">
+                <span className="text-3xl font-black">#{idx + 1}</span>
+                <div className={`w-12 h-12 rounded-xl bg-linear-to-br ${getAvatarColor(player.id)} p-0.5 shadow overflow-hidden`}>
+                  <img src={getAvatar(player.id)} alt={player.username} className="w-full h-full object-cover" />
+                </div>
+                <span className="text-xl font-bold">{player.username}</span>
+              </div>
+              <span className="font-mono text-2xl">{player.score} pts</span>
+            </div>
+          ))}
+        </div>
+
+        <Link to={isOrganizer ? "/dashboard" : "/"} className="btn-outline mt-16 px-8 py-3 rounded-full">
+          {isOrganizer ? "Back to Dashboard" : "Play Again"}
+        </Link>
+      </div>
+    );
+  }
+  
+
+  return null;
 
 
 
