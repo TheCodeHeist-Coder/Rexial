@@ -6,6 +6,7 @@ import { getAvatar, getAvatarColor } from "../utils/Avatars";
 import { BiCheckCircle, BiTrophy, BiXCircle } from "react-icons/bi";
 import BgBoss from "../components/BgBoss";
 import { FaSpinner } from "react-icons/fa6";
+import { MdViewInAr } from "react-icons/md";
 
 
 
@@ -277,10 +278,10 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
 
   if (gameState === GameState.QUESTION || gameState === GameState.RESULTS) {
     return (
-      <div className="min-h-screen flex flex-col pt-8 px-6 pb-24 max-w-5xl mx-auto">
+      <div className="min-h-screen text-black flex flex-col pt-8 px-6 pb-24 max-w-5xl mx-auto">
         <div className="flex justify-between items-center mb-12">
-          <div className="font-bold text-xl text-zinc-400">Question {qIndex + 1}</div>
-          <div className={`w-16 h-16 rounded-full flex items-center justify-center text-3xl font-black border-4 ${timeLeft <= 5 ? 'border-red-500 text-red-500 animate-pulse' : 'border-primary text-primary'}`}>
+          <div className="font-bold text-xl text-zinc-800">Question {qIndex + 1}</div>
+          <div className={`w-16 h-16 rounded-full text-gray-950 flex items-center justify-center text-3xl font-black border-4 ${timeLeft <= 5 ? 'border-red-500 text-red-500 animate-pulse' : 'border-primary text-primary'}`}>
             {timeLeft}
           </div>
         </div>
@@ -330,38 +331,45 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
 
   if (gameState === GameState.LEADERBOARD) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-surface relative overflow-hidden">
-        <div className="absolute top-0 w-full h-1/2 bg-linear-to-b from-primary/20 to-transparent" />
+      <div className="min-h-screen  bg-[#000000]/98 opacity-99 flex flex-col items-center justify-center p-6 bg-surface relative overflow-hidden">
+        <BgBoss opacity="opacity-5" />
 
-        <h1 className="text-4xl font-bold mb-12 z-10 flex items-center gap-3">
-          <BiTrophy className="w-10 h-10 text-yellow-500" /> Leaderboard
+
+
+        <h1 className="sm:text-5xl text-3xl mb-12 z-10 bg-clip-text text-transparent  bg-linear-to-b from-pink-600 to-pink-800/90 font-special tracking-wider flex items-center gap-3">
+          <MdViewInAr className="w-10 h-10  text-pink-700 font-special" /> Leaderboard
         </h1>
 
-        <div className="w-full max-w-2xl space-y-3 z-10">
-
-          {leaderboard.slice(0, 5).map((player, idx) => (
-            <div
-              key={player.id}
+        <div className="flex items-center py-2 justify-center h-1/2 w-full overflow-y-auto ">
 
 
-              className={`flex items-center justify-between p-4 rounded-xl border ${idx === 0 ? 'bg-yellow-500/20 border-yellow-500/50 transform scale-105 shadow-xl' : 'bg-background border-white/10'}`}
-            >
-              <div className="flex items-center gap-3">
-                <span className={`font-black text-2xl w-8 ${idx === 0 ? 'text-yellow-500' : idx === 1 ? 'text-zinc-300' : idx === 2 ? 'text-amber-700' : 'text-zinc-500'}`}>#{idx + 1}</span>
-                <div className={`w-10 h-10 rounded-xl bg-linear-to-br ${getAvatarColor(player.id)} p-0.5 shadow overflow-hidden`}>
-                  <img src={getAvatar(player.id)} alt={player.username} className="w-full h-full object-cover" />
+          <div className="w-full max-w-2xl  space-y-3 z-10">
+
+            {leaderboard.slice(0, 30).map((player, idx) => (
+              <div
+                key={player.id}
+
+
+                className={`flex items-center h-16 sm:h-17 justify-between px-5 rounded-xl border ${idx === 0 ? 'bg-yellow-500/20 border-yellow-500/50  transform scale-100 sm:scale-105 shadow-xl' : idx === 1 ? 'bg-gray-300/30 border-gray-500/80 transform scale-100 sm:scale-103 shadow-xl' : idx === 2 ? 'bg-amber-600/20 border-amber-500/50 transform scale-100 sm:scale-101 shadow-xl' : 'bg-zinc-600/10 border-white/10'}`}
+              >
+                <div className="flex items-center gap-6">
+                  <span className={`font-black text-2xl w-8 ${idx === 0 ? 'text-yellow-500' : idx === 1 ? 'text-zinc-300' : idx === 2 ? 'text-amber-700' : 'text-zinc-500'}`}>#{idx + 1}</span>
+                  <div className={`sm:w-12 sm:h-12 w-9 h-9 rounded-xl bg-linear-to-br ${getAvatarColor(player.id)} p-0.5 shadow overflow-hidden`}>
+                    <img src={getAvatar(player.id)} alt={player.username} className="w-full h-full object-cover " />
+                  </div>
+                  <span className="font-extrabold   sm:text-xl text-md text-gray-300 font-secondary tracking-wider">{player.username}</span>
                 </div>
-                <span className="font-bold text-lg">{player.username}</span>
+                <span className="  sm:text-4xl text-2xl font-special text-pink-500 tracking-wider ">{player.score}</span>
               </div>
-              <span className="font-mono font-bold text-xl">{player.score}</span>
-            </div>
-          ))}
+            ))}
+
+          </div>
 
         </div>
 
         {isOrganizer && (
-          <div className="fixed bottom-0 left-0 w-full p-6 bg-background/80 backdrop-blur-md border-t border-white/10 flex justify-center">
-            <button onClick={handleNext} className="btn-primary py-4 px-12 text-lg font-bold uppercase tracking-widest shadow-xl">Next Question</button>
+          <div className="fixed bottom-0 sm:right-6 z-50  p-6 bg-black  border-t border-white/20 flex justify-center">
+            <button onClick={handleNext} className="cursor-pointer py-4 px-12 text-lg uppercase tracking-widest shadow-xl font-secondary bg-linear-to-b from-pink-500 to-pink-700/70 hover:to-pink-700/60 transition duration-200 text-gray-900 font-extrabold border border-pink-800 rounded-2xl">Next Question</button>
           </div>
         )}
       </div>
