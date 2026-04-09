@@ -52,6 +52,13 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
   const [qIndex, setQIndex] = useState(0);
 
 
+  const topThree = leaderboard.slice(0, 3);
+
+  const three = [topThree[1], topThree[0], topThree[2]];
+
+  const others = leaderboard.slice(3);
+
+
   // if participant is missing, kick them out
   useEffect(() => {
     if (!isOrganizer && !participantId) {
@@ -277,11 +284,15 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
 
 
   if (gameState === GameState.QUESTION || gameState === GameState.RESULTS) {
+
+
     return (
-      <div className="min-h-screen text-black flex flex-col pt-8 px-6 pb-24 max-w-5xl mx-auto">
+      <div className="min-h-screen  bg-[#000000]/98 opacity-99 text-gray flex flex-col pt-8 px-6 pb-24  mx-auto">
+
+         <BgBoss opacity="opacity-5" />
         <div className="flex justify-between items-center mb-12">
-          <div className="font-bold text-xl text-zinc-800">Question {qIndex + 1}</div>
-          <div className={`w-16 h-16 rounded-full text-gray-950 flex items-center justify-center text-3xl font-black border-4 ${timeLeft <= 5 ? 'border-red-500 text-red-500 animate-pulse' : 'border-primary text-primary'}`}>
+          <div className="font-bold text-xl text-zinc-200">Question {qIndex + 1}</div>
+          <div className={`w-16 h-16 rounded-full text-gray-50 flex items-center justify-center text-3xl font-black border-4 ${timeLeft <= 5 ? 'border-red-500 text-red-500 animate-pulse' : 'border-primary text-primary'}`}>
             {timeLeft}
           </div>
         </div>
@@ -298,7 +309,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
             let opacityClass = showResults && !isCorrect ? "opacity-50" : "opacity-100";
 
             if (showResults) {
-              if (isCorrect) bgClass = "bg-green-500 border-green-400 text-white shadow-[0_0_30px_rgba(34,197,94,0.4)]";
+              if (isCorrect) bgClass = "bg-green-500 border-green-400 text-white ";
               else if (isSelected && !isCorrect) bgClass = "bg-red-500/20 border-red-500/50 text-red-200";
               else bgClass = "bg-surface border-border";
             } else if (isSelected) {
@@ -350,8 +361,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
                 key={player.id}
 
 
-                className={`flex items-center h-16 sm:h-17 justify-between px-5 rounded-xl border ${idx === 0 ? 'bg-yellow-500/20 border-yellow-500/50  transform scale-100 sm:scale-105 shadow-xl' : idx === 1 ? 'bg-gray-300/30 border-gray-500/80 transform scale-100 sm:scale-103 shadow-xl' : idx === 2 ? 'bg-amber-600/20 border-amber-500/50 transform scale-100 sm:scale-101 shadow-xl' : 'bg-zinc-600/10 border-white/10'}`}
-              >
+                className={`flex items-center h-16 sm:h-17 justify-between px-5 rounded-xl border ${idx === 0 ? 'bg-yellow-500/20 border-yellow-500/50  transform scale-100 sm:scale-105 shadow-xl' : idx === 1 ? 'bg-gray-300/30 border-gray-500/80 transform scale-100 sm:scale-103 shadow-xl' : idx === 2 ? 'bg-amber-600/20 border-amber-500/50 transform scale-100 sm:scale-101 shadow-xl' : 'bg-zinc-600/10 border-white/10'}`}>
                 <div className="flex items-center gap-6">
                   <span className={`font-black text-2xl w-8 ${idx === 0 ? 'text-yellow-500' : idx === 1 ? 'text-zinc-300' : idx === 2 ? 'text-amber-700' : 'text-zinc-500'}`}>#{idx + 1}</span>
                   <div className={`sm:w-12 sm:h-12 w-9 h-9 rounded-xl bg-linear-to-br ${getAvatarColor(player.id)} p-0.5 shadow overflow-hidden`}>
@@ -369,7 +379,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
 
         {isOrganizer && (
           <div className="fixed bottom-0 sm:right-6 z-50  p-6 bg-black  border-t border-white/20 flex justify-center">
-            <button onClick={handleNext} className="cursor-pointer py-4 px-12 text-lg uppercase tracking-widest shadow-xl font-secondary bg-linear-to-b from-pink-500 to-pink-700/70 hover:to-pink-700/60 transition duration-200 text-gray-900 font-extrabold border border-pink-800 rounded-2xl">Next Question</button>
+            <button onClick={handleNext} className="cursor-pointer active:scale-95  py-4 px-12 text-lg uppercase tracking-widest shadow-xl font-secondary bg-linear-to-b from-pink-500 to-pink-700/70 hover:to-pink-700/60 transition duration-200 text-gray-900 font-extrabold border border-pink-800 rounded-2xl">Next Question</button>
           </div>
         )}
       </div>
@@ -381,26 +391,89 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
 
   if (gameState === GameState.ENDED) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-background">
-        <BiTrophy className="w-24 h-24 text-yellow-500 mb-6 drop-shadow-2xl" />
-        <h1 className="text-5xl font-black uppercase tracking-widest mb-12">Quiz Finished!</h1>
+      <div className="min-h-screen  bg-[#000000]/98 opacity-99 flex flex-col items-center justify-center p-6  overflow-hidden">
+        <BgBoss opacity="opacity-5" />
 
-        <div className="w-full max-w-xl space-y-4">
-          {leaderboard.slice(0, 3).map((player, idx) => (
-            <div key={player.id} className={`flex justify-between items-center p-5 rounded-2xl ${idx === 0 ? 'bg-linear-to-r from-yellow-500/20 to-amber-500/20 border border-yellow-500/30 text-yellow-500' : 'bg-surface border border-white/5'}`}>
-              <div className="flex items-center gap-4">
-                <span className="text-3xl font-black">#{idx + 1}</span>
-                <div className={`w-12 h-12 rounded-xl bg-linear-to-br ${getAvatarColor(player.id)} p-0.5 shadow overflow-hidden`}>
-                  <img src={getAvatar(player.id)} alt={player.username} className="w-full h-full object-cover" />
-                </div>
-                <span className="text-xl font-bold">{player.username}</span>
-              </div>
-              <span className="font-mono text-2xl">{player.score} pts</span>
-            </div>
-          ))}
+        <div>
+        <h1 className="sm:text-5xl text-center text-[26px] bg-clip-text text-transparent bg-linear-to-b from-pink-500 to-pink-700 uppercase tracking-widest mb-2 font-special">Quiz Finished!</h1>
+        <p className="text-lg sm:text-3xl text-center text-gray-300 font-bold mb-6 sm:mb-10  font-secondary tracking-wide"> Congratulations Winners ! </p>
+           </div>
+ 
+      <div className="w-full max-w-4xl mx-auto space-y-6">
+
+   {/* top three performers */}
+<div className="   sm:flex  justify-center items-center gap-3  sm:gap-12">
+  {three.map((player, idx) => {
+    const isFirst = idx === 1;
+    const rank = isFirst ? 1 : idx === 0 ? 2 : 3;
+
+    return (
+      <div
+        key={player.id}
+        className={`flex flex-col gap-2  mb-8 items-center p-5 rounded-2xl w-40
+        ${isFirst 
+          ? 'bg-yellow-500/20 w-60 border border-yellow-500/30 text-yellow-500 scale-110' 
+          : 'bg-surface border border-white/5'}
+        ${rank === 2 ? 'mt-6 w-55 bg-[#C0C0C0]/40 text-[#C0C0C0] border-2 border-gray-400' : ''}
+        ${rank === 3 ? 'mt-10 w-55 bg-[#4A3004]/50 text-amber-600 border-2 border-amber-400' : ''}
+        `}
+      >
+        <span className="text-3xl font-black font-secondary"> Rank: <span className="font-special font-light"> {rank}  </span> </span>
+
+        <div className={`w-16 h-16 rounded-xl bg-linear-to-br ${getAvatarColor(player.id)} p-0.5 shadow overflow-hidden`}>
+          <img
+            src={getAvatar(player.id)}
+            alt={player.username}
+            className="w-full h-full object-cover"
+          />
         </div>
 
-        <Link to={isOrganizer ? "/dashboard" : "/"} className="btn-outline mt-16 px-8 py-3 rounded-full">
+        <span className="text-xl font-bold mt-2 text-center font-secondary tracking-wide">
+          {player.username}
+        </span>
+
+        <span className=" text-2xl font-special tracking-wide">
+          {player.score} pts
+        </span>
+      </div>
+    );
+  })}
+</div>
+   {/* Rest of the performers till top-30 */}
+  <div className="space-y-5">
+    {others.map((player, idx) => (
+      <div
+        key={player.id}
+        className="flex justify-between items-center px-4 sm:py-5 py-3 rounded-2xl bg-surface border border-white/10 bg-zinc-600/30"
+      >
+        <div className="flex items-center gap-3 sm:gap-4">
+          <span className="text-lg sm:text-2xl font-black text-gray-400 tracking-tighter">
+            #{idx + 4}
+          </span>
+
+          <div className={`sm:w-12 sm:h-12 h-10 w-10 rounded-xl bg-linear-to-br ${getAvatarColor(player.id)} p-0.5 shadow overflow-hidden`}>
+            <img
+              src={getAvatar(player.id)}
+              alt={player.username}
+              className="w-full h-full object-cover"
+            />
+          </div>
+
+          <span className="text-md sm:text-xl font-secondary font-extrabold tracking-wider text-pink-500/80">
+            {player.username}
+          </span>
+        </div>
+
+        <span className="text-md sm:text-2xl font-special tracking-wider text-pink-600">
+          {player.score} pts
+        </span>
+      </div>
+    ))}
+  </div>
+
+</div>
+
+        <Link to={isOrganizer ? "/dashboard" : "/"} className="mt-16 px-8 py-3 text-black font-bold font-secondary tracking-wide rounded-full bg-linear-to-b from-pink-500 to-pink-800/40 hover:to-pink-800/30 transition duration-200 shadow-sm active:shadow-none active:scale-95 shadow-pink-700">
           {isOrganizer ? "Back to Dashboard" : "Play Again"}
         </Link>
       </div>
