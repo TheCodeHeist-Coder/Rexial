@@ -34,9 +34,9 @@ export const handleMessage = async (client: Client, data: any) => {
                 });
 
                 const participants = await prisma.participant.findMany({
-                    where: {sessionId}
+                    where: { sessionId }
                 });
-                 broadcastToSession(sessionId, 'participants:sync', { participants });
+                broadcastToSession(sessionId, 'participants:sync', { participants });
 
                 broadcastToSession(sessionId, 'participant:joined', { participant });
             }
@@ -64,7 +64,7 @@ export const handleMessage = async (client: Client, data: any) => {
                     quiz: {
                         include: {
                             questions: {
-                                orderBy: { order: 'desc' },
+                                orderBy: { order: 'asc' },
                                 include: { answers: true }
                             }
                         }
@@ -107,18 +107,28 @@ export const handleMessage = async (client: Client, data: any) => {
 
             const timer = setInterval(async () => {
                 timeleft--;
+
                 broadcastToSession(sessionId, 'quiz:timer-tick', { timeleft });
 
                 if (timeleft <= 0) {
                     clearInterval(timer);
                     sessionTimers.delete(sessionId);
+
+                    // ✅ ONLY RUN ONCE
+                    const leaderboard = await getLeaderboard(sessionId);
+
+                    broadcastToSession(sessionId, 'quiz:question-results', {
+                        correctAnswers: question.answers
+                            .filter(ans => ans.isCorrect)
+                            .map(ans => ans.id)
+                    });
+
+                    setTimeout(() => {
+                        broadcastToSession(sessionId, 'quiz:leaderboard', { leaderboard });
+                    }, 2000);
                 }
 
-                // now broadcasting result sna leaderboard
-                const leaderboard = await getLeaderboard(sessionId);
-                broadcastToSession(sessionId, 'quiz:question-results', { correctAnswers: question.answers.filter((ans) => ans.isCorrect).map(ans => ans.id) })
-                setTimeout(() => broadcastToSession(sessionId, 'quiz:leaderboard', { leaderboard }), 2000);
-            }, 1000)
+            }, 1000);
 
             sessionTimers.set(sessionId, timer);
             break;
