@@ -289,7 +289,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
     return (
       <div className="min-h-screen  bg-[#000000]/98 opacity-99 text-gray flex flex-col pt-8 px-6 pb-24  mx-auto">
 
-         <BgBoss opacity="opacity-5" />
+        <BgBoss opacity="opacity-5" />
         <div className="flex justify-between items-center mb-12">
           <div className="font-bold text-xl text-zinc-200">Question {qIndex + 1}</div>
           <div className={`w-16 h-16 rounded-full text-gray-50 flex items-center justify-center text-3xl font-black border-4 ${timeLeft <= 5 ? 'border-red-500 text-red-500 animate-pulse' : 'border-primary text-primary'}`}>
@@ -395,83 +395,83 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
         <BgBoss opacity="opacity-5" />
 
         <div>
-        <h1 className="sm:text-5xl text-center text-[26px] bg-clip-text text-transparent bg-linear-to-b from-pink-500 to-pink-700 uppercase tracking-widest mb-2 font-special">Quiz Finished!</h1>
-        <p className="text-lg sm:text-3xl text-center text-gray-300 font-bold mb-6 sm:mb-10  font-secondary tracking-wide"> Congratulations Winners ! </p>
-           </div>
- 
-      <div className="w-full max-w-4xl mx-auto space-y-6">
+          <h1 className="sm:text-5xl text-center text-[26px] bg-clip-text text-transparent bg-linear-to-b from-pink-500 to-pink-700 uppercase tracking-widest mb-2 font-special">Quiz Finished!</h1>
+          <p className="text-lg sm:text-3xl text-center text-gray-300 font-bold mb-6 sm:mb-10  font-secondary tracking-wide"> Congratulations Winners ! </p>
+        </div>
 
-   {/* top three performers */}
-<div className="   sm:flex  justify-center items-center gap-3  sm:gap-12">
-  {three.map((player, idx) => {
-    const isFirst = idx === 1;
-    const rank = isFirst ? 1 : idx === 0 ? 2 : 3;
+        <div className="w-full max-w-4xl mx-auto space-y-6">
 
-    return (
-      <div
-        key={player.id}
-        className={`flex flex-col gap-2  mb-8 items-center p-5 rounded-2xl w-40
-        ${isFirst 
-          ? 'bg-yellow-500/20 w-60 border border-yellow-500/30 text-yellow-500 scale-110' 
-          : 'bg-surface border border-white/5'}
+          {/* top three performers */}
+          <div className="   sm:flex  justify-center items-center gap-3  sm:gap-12">
+            {three.map((player, idx) => {
+              const isFirst = idx === 1;
+              const rank = isFirst ? 1 : idx === 0 ? 2 : 3;
+
+              return (
+                <div
+                  key={player.id}
+                  className={`flex flex-col gap-2  mb-8 items-center p-5 rounded-2xl w-40
+        ${isFirst
+                      ? 'bg-yellow-500/20 w-60 border border-yellow-500/30 text-yellow-500 scale-110'
+                      : 'bg-surface border border-white/5'}
         ${rank === 2 ? 'mt-6 w-55 bg-[#C0C0C0]/40 text-[#C0C0C0] border-2 border-gray-400' : ''}
         ${rank === 3 ? 'mt-10 w-55 bg-[#4A3004]/50 text-amber-600 border-2 border-amber-400' : ''}
         `}
-      >
-        <span className="text-3xl font-black font-secondary"> Rank: <span className="font-special font-light"> {rank}  </span> </span>
+                >
+                  <span className="text-3xl font-black font-secondary"> Rank: <span className="font-special font-light"> {rank}  </span> </span>
 
-        <div className={`w-16 h-16 rounded-xl bg-linear-to-br ${getAvatarColor(player.id)} p-0.5 shadow overflow-hidden`}>
-          <img
-            src={getAvatar(player.id)}
-            alt={player.username}
-            className="w-full h-full object-cover"
-          />
-        </div>
+                  <div className={`w-16 h-16 rounded-xl bg-linear-to-br ${getAvatarColor(player.id)} p-0.5 shadow overflow-hidden`}>
+                    <img
+                      src={getAvatar(player.id)}
+                      alt={player.username}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
 
-        <span className="text-xl font-bold mt-2 text-center font-secondary tracking-wide">
-          {player.username}
-        </span>
+                  <span className="text-xl font-bold mt-2 text-center font-secondary tracking-wide">
+                    {player.username}
+                  </span>
 
-        <span className=" text-2xl font-special tracking-wide">
-          {player.score} pts
-        </span>
-      </div>
-    );
-  })}
-</div>
-   {/* Rest of the performers till top-30 */}
-  <div className="space-y-5">
-    {others.map((player, idx) => (
-      <div
-        key={player.id}
-        className="flex justify-between items-center px-4 sm:py-5 py-3 rounded-2xl bg-surface border border-white/10 bg-zinc-600/30"
-      >
-        <div className="flex items-center gap-3 sm:gap-4">
-          <span className="text-lg sm:text-2xl font-black text-gray-400 tracking-tighter">
-            #{idx + 4}
-          </span>
+                  <span className=" text-2xl font-special tracking-wide">
+                    {player.score} pts
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          {/* Rest of the performers till top-30 */}
+          <div className="space-y-5">
+            {others.map((player, idx) => (
+              <div
+                key={player.id}
+                className="flex justify-between items-center px-4 sm:py-5 py-3 rounded-2xl bg-surface border border-white/10 bg-zinc-600/30"
+              >
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <span className="text-lg sm:text-2xl font-black text-gray-400 tracking-tighter">
+                    #{idx + 4}
+                  </span>
 
-          <div className={`sm:w-12 sm:h-12 h-10 w-10 rounded-xl bg-linear-to-br ${getAvatarColor(player.id)} p-0.5 shadow overflow-hidden`}>
-            <img
-              src={getAvatar(player.id)}
-              alt={player.username}
-              className="w-full h-full object-cover"
-            />
+                  <div className={`sm:w-12 sm:h-12 h-10 w-10 rounded-xl bg-linear-to-br ${getAvatarColor(player.id)} p-0.5 shadow overflow-hidden`}>
+                    <img
+                      src={getAvatar(player.id)}
+                      alt={player.username}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+
+                  <span className="text-md sm:text-xl font-secondary font-extrabold tracking-wider text-pink-500/80">
+                    {player.username}
+                  </span>
+                </div>
+
+                <span className="text-md sm:text-2xl font-special tracking-wider text-pink-600">
+                  {player.score} pts
+                </span>
+              </div>
+            ))}
           </div>
 
-          <span className="text-md sm:text-xl font-secondary font-extrabold tracking-wider text-pink-500/80">
-            {player.username}
-          </span>
         </div>
-
-        <span className="text-md sm:text-2xl font-special tracking-wider text-pink-600">
-          {player.score} pts
-        </span>
-      </div>
-    ))}
-  </div>
-
-</div>
 
         <Link to={isOrganizer ? "/dashboard" : "/"} className="mt-16 px-8 py-3 text-black font-bold font-secondary tracking-wide rounded-full bg-linear-to-b from-pink-500 to-pink-800/40 hover:to-pink-800/30 transition duration-200 shadow-sm active:shadow-none active:scale-95 shadow-pink-700">
           {isOrganizer ? "Back to Dashboard" : "Play Again"}
