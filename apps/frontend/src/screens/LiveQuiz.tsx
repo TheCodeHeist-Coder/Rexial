@@ -292,7 +292,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
         <BgBoss opacity="opacity-5" />
         <div className="flex justify-between items-center mb-12">
           <div className="font-bold text-xl text-zinc-200">Question {qIndex + 1}</div>
-          <div className={`w-16 h-16 rounded-full text-gray-50 flex items-center justify-center text-3xl font-black border-4 ${timeLeft <= 5 ? 'border-red-500 text-red-500 animate-pulse' : 'border-primary text-primary'}`}>
+          <div className={`w-16 h-16 rounded-full  flex items-center justify-center text-3xl font-black border-4 ${timeLeft <= 5 ? 'border-red-500 text-red-500 animate-pulse' : 'border border-gray-100 text-gray-50'}`}>
             {timeLeft}
           </div>
         </div>

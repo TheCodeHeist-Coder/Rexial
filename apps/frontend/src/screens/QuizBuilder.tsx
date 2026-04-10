@@ -28,8 +28,11 @@ function QuizBuilder() {
 
 
 
+
   useEffect(() => {
-    fetchQuiz();
+    if (id) {
+      fetchQuiz();
+    }
   }, [id]);
 
 
@@ -37,15 +40,16 @@ function QuizBuilder() {
     try {
       setLoading(true);
       const { data } = await api.get(`/quizzes/${id}`);
+
+      console.log("Fetched Id:", data.id);
+
       setQuiz(data);
     } catch (error) {
       console.log(error);
     } finally {
       setLoading(false);
     }
-  }
-
-
+  };
 
   const handleGenerateCode = async () => {
     try {
@@ -108,14 +112,14 @@ function QuizBuilder() {
       setQText('');
       setQTime('15');
       setAnswers([{ text: '', isCorrect: true }, { text: '', isCorrect: false }, { text: '', isCorrect: false }, { text: '', isCorrect: false }]);
-      fetchQuiz();
+      fetchQuiz(id!);
     } catch (err) {
       console.error(err);
     }
   };
 
 
-
+  console.log("Rendering quiz ID:", quiz?.id); // ✅ HERE
 
   return (
     <div className="min-h-screen w-full bg-[#000000]/98 opacity-99">

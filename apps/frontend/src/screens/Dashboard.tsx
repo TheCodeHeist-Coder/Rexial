@@ -27,9 +27,12 @@ function Dashboard() {
 
 
 
+
   useEffect(() => {
     fetchQuizzes();
   }, []);
+
+ 
 
 
   const fetchQuizzes = async () => {
@@ -50,6 +53,7 @@ function Dashboard() {
 
     try {
       const { data } = await api.post('/quizzes', { title: newTitle, description: newDescription });
+    
       setNewTitle('');
       setShowCreate(false);
       navigate(`/quiz/${data.id}/edit`);
@@ -60,7 +64,7 @@ function Dashboard() {
     }
   };
 
- 
+
 
 
 
@@ -285,7 +289,7 @@ function Dashboard() {
 
 
 
-  
+
 
     </div>
   )

@@ -89,7 +89,7 @@ export const handleMessage = async (client: Client, data: any) => {
             // without revealing answers
             const sanitizedQuestion = {
                 ...question,
-                answers: question.answers.map((ans) => ({
+                answers: question.answers.map((ans:any) => ({
                     id: ans.id,
                     text: ans.text
                 }))
@@ -119,8 +119,8 @@ export const handleMessage = async (client: Client, data: any) => {
 
                     broadcastToSession(sessionId, 'quiz:question-results', {
                         correctAnswers: question.answers
-                            .filter(ans => ans.isCorrect)
-                            .map(ans => ans.id)
+                            .filter((ans:any) => ans.isCorrect)
+                            .map((ans:any) => ans.id)
                     });
 
                     setTimeout(() => {
