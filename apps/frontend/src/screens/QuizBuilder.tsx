@@ -11,6 +11,7 @@ function QuizBuilder() {
 
   const { id } = useParams();
 
+
   const navigate = useNavigate();
 
   const [quiz, setQuiz] = useState<any>(null);
@@ -41,7 +42,6 @@ function QuizBuilder() {
       setLoading(true);
       const { data } = await api.get(`/quizzes/${id}`);
 
-      console.log("Fetched Id:", data.id);
 
       setQuiz(data);
     } catch (error) {
@@ -112,14 +112,12 @@ function QuizBuilder() {
       setQText('');
       setQTime('15');
       setAnswers([{ text: '', isCorrect: true }, { text: '', isCorrect: false }, { text: '', isCorrect: false }, { text: '', isCorrect: false }]);
-      fetchQuiz(id!);
+      fetchQuiz();
     } catch (err) {
       console.error(err);
     }
   };
 
-
-  console.log("Rendering quiz ID:", quiz?.id); // ✅ HERE
 
   return (
     <div className="min-h-screen w-full bg-[#000000]/98 opacity-99">
