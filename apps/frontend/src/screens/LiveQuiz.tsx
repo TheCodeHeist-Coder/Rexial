@@ -287,49 +287,84 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
 
 
     return (
-      <div className="min-h-screen  bg-[#000000]/98 opacity-99 text-gray flex flex-col pt-8 px-6 pb-24  mx-auto">
+      <div className="min-h-screen bg-[#000000]/99 opacity-98 text-gray flex flex-col items-center justify-center pt-16 px-4 sm:px-8 md:px-16 lg:px-32 xl:px-80 pb-16 mx-auto overflow-hidden">
 
         <BgBoss opacity="opacity-5" />
-        <div className="flex justify-between items-center mb-12">
-          <div className="font-bold text-xl text-zinc-200">Question {qIndex + 1}</div>
-          <div className={`w-16 h-16 rounded-full  flex items-center justify-center text-3xl font-black border-4 ${timeLeft <= 5 ? 'border-red-500 text-red-500 animate-pulse' : 'border border-gray-100 text-gray-50'}`}>
-            {timeLeft}
+
+        <div className="w-full max-w-5xl flex flex-col">
+
+
+          <div className="flex justify-between items-center mb-6 px-4 sm:mb-8">
+            <div className="text-2xl sm:text-3xl md:text-4xl text-pink-600 tracking-wider font-special">
+              Question: {qIndex + 1}
+            </div>
+
+            <div
+              className={`w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center text-xl sm:text-2xl md:text-3xl border-2 
+        ${timeLeft <= 5
+                  ? 'border-red-500 text-red-500 animate-pulse'
+                  : 'border-gray-100 text-gray-50'
+                }`}
+            >
+              {timeLeft}
+            </div>
           </div>
+
+          <h2 className="text-4xl md:text-4xl lg:text-5xl bg-clip-text text-transparent bg-linear-to-b from-pink-500 to-pink-700/80 font-secondary tracking-wider font-bold text-center mt-6 sm:mt-10 mb-10 sm:mb-16 px-2 leading-snug">
+            {currentQuestion?.text}
+          </h2>
+
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mt-auto">
+            {currentQuestion?.answers.map((answer: any, i: number) => {
+              const isSelected = selectedAnswer === answer.id;
+              const isCorrect = correctAnswers.includes(answer.id);
+              const showResults = gameState === GameState.RESULTS;
+
+              let bgClass =
+                "bg-zinc-800/20 text-gray-300 hover:bg-zinc-700/20 border border-gray-700/40 cursor-pointer";
+
+              let opacityClass =
+                showResults && !isCorrect ? "opacity-50" : "opacity-100";
+
+              if (showResults) {
+                if (isCorrect)
+                  bgClass =
+                    "bg-green-500/60 border-green-400 font-secondary text-gray-100";
+                else if (isSelected && !isCorrect)
+                  bgClass =
+                    "bg-red-500/20 font-secondary border-red-500/50 text-red-200";
+                else bgClass = "bg-gray-800/10 border-border";
+              } else if (isSelected) {
+                bgClass =
+                  "border border-pink-800/30 bg-pink-600/20 font-secondary text-white shadow-[0_0_12px_rgba(139,92,246,0.3)]";
+              }
+
+              return (
+                <button
+                  key={answer.id}
+                  onClick={() => handleAnswer(answer.id)}
+                  disabled={Boolean(selectedAnswer) || showResults}
+                  className={`relative w-full px-4 sm:px-6 md:px-12 py-3 sm:py-4 rounded-full border-2 text-base sm:text-lg md:text-xl font-bold flex items-center justify-center text-center transition-all ${bgClass} ${opacityClass}`}
+                >
+                  {answer.text}
+
+                  {showResults && isCorrect && (
+                    <BiCheckCircle className="absolute right-4 w-5 h-5 sm:w-6 sm:h-6 opacity-80" />
+                  )}
+
+                  {showResults && isSelected && !isCorrect && (
+                    <BiXCircle className="absolute right-4 w-5 h-5 sm:w-6 sm:h-6 opacity-80" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
         </div>
 
-        <h2 className="text-3xl md:text-5xl font-bold text-center mb-16 px-4 leading-tight">{currentQuestion?.text}</h2>
 
-        <div className="grid sm:grid-cols-2 gap-4 md:gap-6 mt-auto">
-          {currentQuestion?.answers.map((answer: any, i: number) => {
-            const isSelected = selectedAnswer === answer.id;
-            const isCorrect = correctAnswers.includes(answer.id);
-            const showResults = gameState === GameState.RESULTS;
 
-            let bgClass = "bg-surface hover:bg-white/5 border-border";
-            let opacityClass = showResults && !isCorrect ? "opacity-50" : "opacity-100";
-
-            if (showResults) {
-              if (isCorrect) bgClass = "bg-green-500 border-green-400 text-white ";
-              else if (isSelected && !isCorrect) bgClass = "bg-red-500/20 border-red-500/50 text-red-200";
-              else bgClass = "bg-surface border-border";
-            } else if (isSelected) {
-              bgClass = "bg-primary border-primary text-white shadow-[0_0_20px_rgba(139,92,246,0.3)]";
-            }
-
-            return (
-              <button
-
-                onClick={() => handleAnswer(answer.id)}
-                disabled={Boolean(selectedAnswer) || showResults}
-                className={`min-h-30 p-6 rounded-2xl border-2 text-xl font-bold flex items-center justify-center text-center transition-all ${bgClass} ${opacityClass}`}
-              >
-                {answer.text}
-                {showResults && isCorrect && <BiCheckCircle className="absolute right-4 w-6 h-6 opacity-80" />}
-                {showResults && isSelected && !isCorrect && <BiXCircle className="absolute right-4 w-6 h-6 opacity-80" />}
-              </button>
-            );
-          })}
-        </div>
 
         {gameState === GameState.RESULTS && isOrganizer && (
           <div className="fixed bottom-0 left-0 w-full p-6 bg-background/80 backdrop-blur-md border-t border-white/10 flex justify-end">
