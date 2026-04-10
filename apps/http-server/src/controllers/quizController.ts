@@ -92,11 +92,12 @@ export const getAllQuizesController = async (req: Request, res: Response) => {
 // getting quiz by id
 export const getQuizByIdController = async (req: Request, res: Response) => {
     try {
-        const { id } = req.params;
+        const { quizId } = req.params;
 
-        const quiz = await prisma.quiz.findFirst({
+
+        const quiz = await prisma.quiz.findUnique({
             where: {
-                id: id as string,
+                id: quizId as string,
                 quizOrganizers: {
                     some: {
                         userId: req.userId,
