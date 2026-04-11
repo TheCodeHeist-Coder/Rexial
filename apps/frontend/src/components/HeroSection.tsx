@@ -27,6 +27,9 @@ function HeroSection() {
 
 
     return (
+        <div className="w-full min-h-screen bg-linear-to-t from-pink-600/20 to-transparent ">
+
+        
         <div className="text-white flex flex-col items-center mt-16 max-w-7xl mx-auto px-4 sm:px-6 pb-16 sm:pb-28 pt-6">
 
             {/* Badge */}
@@ -115,7 +118,7 @@ function HeroSection() {
 
 
 
-
+</div>
         </div>
     )
 }

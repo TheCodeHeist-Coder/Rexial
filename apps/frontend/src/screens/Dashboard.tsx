@@ -70,8 +70,14 @@ function Dashboard() {
 
 
   return (
+   
+   
     <div className="w-full min-h-screen  bg-[#000000]/98 opacity-99 pb-12">
       <BgBoss opacity="opacity-5" />
+
+      <div className="w-full bg-linear-to-tl from-transparent via-pink-600/10 to-transparent">
+
+      
 
       {/* Simple navbar */}
       <div className="sticky top-0 pt-3 z-50 px-2">
@@ -287,8 +293,8 @@ function Dashboard() {
 
 
 
-
-
+    </div>
+ 
 
 
     </div>
