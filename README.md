@@ -1,160 +1,115 @@
-# Turborepo starter
+# ***Real-Time Quiz Platform***
 
-This Turborepo starter is maintained by the Turborepo core team.
+## 📌 Overview
+This project is a **real-time quiz hosting platform** where users can create, host, and participate in quizzes seamlessly using a unique join code. It is designed to provide an interactive and engaging experience with live dashboards, avatars, and collaborative hosting.
 
-## Using this example
+The platform evolves in multiple versions:
 
-Run the following command:
+- **Version 1:** Core real-time quiz system  
+- **Version 2:** AI-powered quiz generation  
+- **Version 3:** Live video-based quiz experience  
 
-```sh
-npx create-turbo@latest
-```
+---
 
-## What's inside?
+## 🛠️ Tech Stack
 
-This Turborepo includes the following packages/apps:
+### Monorepo & Tooling
+- **TurboRepo** – High-performance monorepo setup  
+- **pnpm Workspaces** – Efficient dependency management  
 
-### Apps and Packages
+### Frontend
+- **React** – UI development  
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+### Backend
+- **Node.js + Express** – API and server logic  
+- **WebSockets** – Real-time communication  
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+### Database
+- **PostgreSQL** – Relational database  
+- **Prisma ORM** – Type-safe database access  
 
-### Utilities
+### Version 2 (AI Features)
+- **Python** – AI/ML services for quiz generation  
+- **GenAI APIs / LLMs** – Content-based question generation  
 
-This Turborepo has some additional tools already setup for you:
+### Version 3 (Live Streaming)
+- **WebRTC** – Real-time video/audio communication  
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+---
 
-### Build
+## ✨ Features
 
-To build all apps and packages, run the following command:
+###  Version 1 – Core Features
+-  Create and host quizzes  
+-  Unique quiz join code system  
+-  Participants can join using code  
+-  Co-host support  
+-  Real-time quiz flow using WebSockets  
+-  Live dashboard after each question  
+-  Final leaderboard/dashboard at the end  
+-  Random avatar assigned to participants  
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+---
 
-```sh
-cd my-turborepo
-turbo build
-```
+### 🤖 Version 2 – AI Integration
+-  Generate quizzes using prompts  
+-  Subject-based quiz generation  
+-  Upload PDFs/PPTs to auto-generate questions  
+-  Smart content understanding using GenAI  
+-  Dynamic quiz creation pipeline  
 
-Without global `turbo`, use your package manager:
+---
 
-```sh
-cd my-turborepo
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
-```
+### 🎥 Version 3 – Live Streaming Experience
+-  Real-time video quiz sessions  
+-  Host-guided quiz interactions  
+-  Interactive learning environment  
+-  Combine live discussion with quiz attempts  
+-  Feedback and explanations during quiz  
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+---
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+### DevOps & Deployment
+- **Docker** – Containerization  
+- **GitHub Actions** – CI/CD pipelines  
+- **AWS** – Cloud hosting and infrastructure  
 
-```sh
-turbo build --filter=docs
-```
+### Future DevOps Enhancements
+- **Kubernetes** – Container orchestration  
+- Advanced scaling and monitoring tools  
 
-Without global `turbo`:
+---
 
-```sh
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
+## 🧩 Architecture Overview
 
-### Develop
+- **Monorepo structure** using TurboRepo  
+- Separate apps/services:
+  - `frontend` (React)
+  - `backend` (Express + WebSockets)
+  - `ai-service` (Python – GenAI, V2)
+- Real-time communication via **WebSockets**
+- Containerized using **Docker**
+- CI/CD pipelines via **GitHub Actions**
+- Hosted on **AWS**
+- Future scalability with **Kubernetes**
 
-To develop all apps and packages, run the following command:
+---
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+## 🚀 Getting Started
 
-```sh
-cd my-turborepo
-turbo dev
-```
+### Prerequisites
+- Node.js  
+- pnpm  
+- PostgreSQL  
 
-Without global `turbo`, use your package manager:
+### Installation
 
-```sh
-cd my-turborepo
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
-```
+```bash
+# Clone the repository
+git clone <your-repo-url>
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+# Install dependencies
+pnpm install
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo dev --filter=web
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
-# Qtrive
+# Start development
+pnpm dev
