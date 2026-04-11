@@ -287,11 +287,18 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
 
 
     return (
-      <div className="min-h-screen bg-[#000000]/99 opacity-98 text-gray flex flex-col items-center justify-center pt-16 px-4 sm:px-8 md:px-16 lg:px-32 xl:px-80 pb-16 mx-auto overflow-hidden">
+      <div className="min-h-screen relative bg-[#000000]/99 opacity-98 text-gray flex flex-col items-center justify-center pt-16 px-4 sm:px-8 md:px-16 lg:px-32 xl:px-80 pb-16 mx-auto overflow-hidden">
 
         <BgBoss opacity="opacity-5" />
 
+        <div className="absolute top-18">
+
+          <Link to={"/"} className="text-4xl tracking-wider font-special bg-clip-text text-transparent bg-linear-to-b from-pink-400 to-pink-600"> LiveKnock </Link>
+        </div>
+
         <div className="w-full max-w-5xl flex flex-col">
+
+
 
 
           <div className="flex justify-between items-center mb-6 px-4 sm:mb-8">
@@ -310,12 +317,12 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
             </div>
           </div>
 
-          <h2 className="text-4xl md:text-4xl lg:text-5xl bg-clip-text text-transparent bg-linear-to-b from-pink-500 to-pink-700/80 font-secondary tracking-wider font-bold text-center mt-6 sm:mt-10 mb-10 sm:mb-16 px-2 leading-snug">
+          <h2 className="text-2xl md:text-3xl lg:text-4xl bg-clip-text text-transparent bg-linear-to-b from-pink-500 to-pink-600/80 font-secondary tracking-wider font-bold text-center mt-6 sm:mt-10 mb-10 sm:mb-16 px-2 leading-snug">
             {currentQuestion?.text}
           </h2>
 
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mt-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mt-auto font-secondary tracking-wider">
             {currentQuestion?.answers.map((answer: any, i: number) => {
               const isSelected = selectedAnswer === answer.id;
               const isCorrect = correctAnswers.includes(answer.id);
