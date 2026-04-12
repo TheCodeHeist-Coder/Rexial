@@ -51,6 +51,9 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
   const [questionStartTime, setQuestionStartTime] = useState<number>(0);
   const [qIndex, setQIndex] = useState(0);
 
+    // 1st log for timeleft
+    console.log("Timeleft is: ", timeLeft);
+
 
   const topThree = leaderboard.slice(0, 3);
 
@@ -148,6 +151,10 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
 
       setWs(socket);
     };
+
+
+    // 2nd log for timeleft
+    console.log("Timeleft is: ", timeLeft);
 
 
 
