@@ -117,6 +117,9 @@ importers:
       '@types/jsonwebtoken':
         specifier: ^9.0.10
         version: 9.0.10
+      '@types/nodemailer':
+        specifier: ^8.0.0
+        version: 8.0.0
       '@types/nodemon':
         specifier: ^3.1.1
         version: 3.1.1
@@ -126,6 +129,9 @@ importers:
       '@types/passport-google-oauth20':
         specifier: ^2.0.17
         version: 2.0.17
+      '@types/uuid':
+        specifier: ^11.0.0
+        version: 11.0.0
       bcrypt:
         specifier: ^6.0.0
         version: 6.0.0
@@ -141,6 +147,9 @@ importers:
       jsonwebtoken:
         specifier: ^9.0.3
         version: 9.0.3
+      nodemailer:
+        specifier: ^8.0.5
+        version: 8.0.5
       nodemon:
         specifier: ^3.1.14
         version: 3.1.14
@@ -150,6 +159,9 @@ importers:
       passport-google-oauth20:
         specifier: ^2.0.0
         version: 2.0.0
+      uuid:
+        specifier: ^13.0.0
+        version: 13.0.0
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -1152,6 +1164,9 @@ packages:
   '@types/node@25.5.0':
     resolution: {integrity: sha512-jp2P3tQMSxWugkCUKLRPVUpGaL5MVFwF8RDuSRztfwgN1wmqJeMSbKlnEtQqU8UrhTmzEmZdu2I6v2dpp7XIxw==}
 
+  '@types/nodemailer@8.0.0':
+    resolution: {integrity: sha512-fyf8jWULsCo0d0BuoQ75i6IeoHs47qcqxWc7yUdUcV0pOZGjUTTOvwdG1PRXUDqN/8A64yQdQdnA2pZgcdi+cA==}
+
   '@types/nodemon@3.1.1':
     resolution: {integrity: sha512-q29nOOLwcTTPzp6VABHTybbLYdPF5aW6FZARvax8JGhYdQvLtZXX3z2MPP1KkaBDxVsNp7ehl2OSuTbIpsTihg==}
     deprecated: This is a stub types definition. nodemon provides its own type definitions, so you do not need this installed.
@@ -1210,6 +1225,10 @@ packages:
 
   '@types/strip-json-comments@0.0.30':
     resolution: {integrity: sha512-7NQmHra/JILCd1QqpSzl8+mJRc8ZHz3uDm8YV1Ks9IhK0epEiTw8aIErbvH9PI+6XbqhyIQy3462nEsn7UVzjQ==}
+
+  '@types/uuid@11.0.0':
+    resolution: {integrity: sha512-HVyk8nj2m+jcFRNazzqyVKiZezyhDKrGUA3jlEcg/nZ6Ms+qHwocba1Y/AaVaznJTAM9xpdFSh+ptbNrhOGvZA==}
+    deprecated: This is a stub types definition. uuid provides its own type definitions, so you do not need this installed.
 
   '@types/ws@8.18.1':
     resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
@@ -2590,6 +2609,10 @@ packages:
   node-releases@2.0.36:
     resolution: {integrity: sha512-TdC8FSgHz8Mwtw9g5L4gR/Sh9XhSP/0DEkQxfEFXOpiul5IiHgHan2VhYYb6agDSfp4KuvltmGApc8HMgUrIkA==}
 
+  nodemailer@8.0.5:
+    resolution: {integrity: sha512-0PF8Yb1yZuQfQbq+5/pZJrtF6WQcjTd5/S4JOHs9PGFxuTqoB/icwuB44pOdURHJbRKX1PPoJZtY7R4VUoCC8w==}
+    engines: {node: '>=6.0.0'}
+
   nodemon@3.1.14:
     resolution: {integrity: sha512-jakjZi93UtB3jHMWsXL68FXSAosbLfY0In5gtKq3niLSkrWznrVBzXFNOEMJUfc9+Ke7SHWoAZsiMkNP3vq6Jw==}
     engines: {node: '>=10'}
@@ -3394,6 +3417,10 @@ packages:
   utils-merge@1.0.1:
     resolution: {integrity: sha512-pMZTvIkT1d+TFGvDOqodOclx0QWkkgi6Tdoa8gC8ffGAAqz9pzPTZWAybbsHHoED/ztMtkv/VoYTYyShUn81hA==}
     engines: {node: '>= 0.4.0'}
+
+  uuid@13.0.0:
+    resolution: {integrity: sha512-XQegIaBTVUjSHliKqcnFqYypAd4S+WCYt5NIeRs6w/UAry7z8Y9j5ZwRRL4kzq9U3sD6v+85er9FvkEaBpji2w==}
+    hasBin: true
 
   v8-compile-cache-lib@3.0.1:
     resolution: {integrity: sha512-wa7YjyUGfNZngI/vtK0UHAN+lgDCxBPCylVXGp0zu59Fz5aiGtNXaq3DhIov063MorB+VfufLh3JlF2KdTK3xg==}
@@ -4314,6 +4341,10 @@ snapshots:
     dependencies:
       undici-types: 7.18.2
 
+  '@types/nodemailer@8.0.0':
+    dependencies:
+      '@types/node': 25.5.0
+
   '@types/nodemon@3.1.1':
     dependencies:
       nodemon: 3.1.14
@@ -4387,6 +4418,10 @@ snapshots:
   '@types/strip-bom@3.0.0': {}
 
   '@types/strip-json-comments@0.0.30': {}
+
+  '@types/uuid@11.0.0':
+    dependencies:
+      uuid: 13.0.0
 
   '@types/ws@8.18.1':
     dependencies:
@@ -5990,6 +6025,8 @@ snapshots:
 
   node-releases@2.0.36: {}
 
+  nodemailer@8.0.5: {}
+
   nodemon@3.1.14:
     dependencies:
       chokidar: 3.6.0
@@ -6899,6 +6936,8 @@ snapshots:
       punycode: 2.3.1
 
   utils-merge@1.0.1: {}
+
+  uuid@13.0.0: {}
 
   v8-compile-cache-lib@3.0.1: {}
 
