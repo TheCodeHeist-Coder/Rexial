@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authMiddleware } from "../middlewares/authmiddleware";
-import { inviteCoOrganizerController } from "../controllers/inviteController";
+import { acceptInvitationController, inviteCoOrganizerController } from "../controllers/inviteController";
 
 const router:Router = Router();
 
@@ -9,6 +9,9 @@ const router:Router = Router();
 // invite co-organizers
 router.post('/quizzes/:quizId/invite', authMiddleware, inviteCoOrganizerController)
 
+
+// for accepting the invitation
+router.post('/accept/:token', authMiddleware, acceptInvitationController)
 
 
 
