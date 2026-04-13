@@ -7,6 +7,7 @@ const pass = process.env.SMTP_PASS
 
 
 const transporter = nodemailer.createTransport({
+    service: 'Gmail',
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT),
     secure: false,
@@ -16,15 +17,15 @@ const transporter = nodemailer.createTransport({
     },
 });
 
-export const sendInviteEmail = async(to: string, quizTitle: string, inviteUrl: string) => {
-    if(!user|| ! pass){
+export const sendInviteEmail = async (to: string, quizTitle: string, inviteUrl: string) => {
+    if (!user || !pass) {
         console.log(`[EMail mock] To: ${to} | Quiz: ${quizTitle} | Link: ${inviteUrl}`);
         return;
     }
 
     try {
         await transporter.sendMail({
-            
+
             from: `"Qtrive" <${user}>`,
             to,
             subject: `You have been invited to co-organize: ${quizTitle}`,
@@ -35,6 +36,6 @@ export const sendInviteEmail = async(to: string, quizTitle: string, inviteUrl: s
         });
     } catch (error) {
 
-        console.log('Error while sending email', error); 
+        console.log('Error while sending email', error);
     }
 }
