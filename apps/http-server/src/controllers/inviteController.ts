@@ -56,3 +56,44 @@ export const inviteCoOrganizerController = async (req: Request, res: Response) =
         return errorResponse(res, 500, 'Internal Server Error');
     }
 }
+
+
+// logic for accepting invitation
+ export const  acceptInvitationController = async(req:Request, res:Response) => {
+    try {
+
+        const token = req.params.token;
+
+        const invite = await prisma.quizOrganizer.findUnique({
+            where: {inviteToken: token as string}
+        });
+
+        if(!invite || invite.inviteStatus === 'ACCEPTED') return errorResponse(res, 400, 'Invalid or expired invitation');
+
+        // verify logged-in user matches invited email if applicable
+        const user = await prisma.user.findUnique({
+            where: {
+                id: invite.id
+            },
+        });
+
+        if(invite.inviteEmail && invite.inviteEmail !== user?.email) return errorResponse(res, 400, 'Email is not matching. Try again later');
+
+        await prisma.quizOrganizer.update({
+            where: {id: invite.id},
+            data: {
+                inviteStatus: 'ACCEPTED',
+                userId: req.userId,
+                inviteToken: null
+            }
+        });
+
+        res.status(200).json({
+            message: 'Invitation accepted...'
+        })
+        
+    } catch (error) {
+        console.log("eror while accepting the invitation", error);
+        return errorResponse(res, 500, 'Internal Server Error...')
+    }
+ }
