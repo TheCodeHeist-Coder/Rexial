@@ -7,6 +7,7 @@ import QuizBuilder from './screens/QuizBuilder'
 import ProtectedRoute from './services/ProtectedRoute'
 import LiveQuiz from './screens/LiveQuiz'
 import JoinQuiz from './screens/JoinQuiz'
+import InviteAccept from './screens/InviteAccept'
 
 function App() {
 
@@ -20,6 +21,7 @@ function App() {
         <Route path='/join' element={<JoinQuiz />} />
         <Route path='/quiz/play/:sessionId' element={<LiveQuiz />} />
         <Route path='quiz/manage/:sessionId' element={<LiveQuiz isOrganizer />} />
+        <Route path='/invite/accept/:token' element={<InviteAccept />} />
         <Route path='/dashboard' element={<ProtectedRoute> <Dashboard /> </ProtectedRoute>} />
         <Route path='/quiz/:id/edit' element={<ProtectedRoute> <QuizBuilder /> </ProtectedRoute>} />
 
