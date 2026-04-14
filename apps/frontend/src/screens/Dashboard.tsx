@@ -72,13 +72,13 @@ function Dashboard() {
   return (
    
    
-    <div className="w-full min-h-screen  bg-[#000000]/98 opacity-99 pb-12">
+    <div className="w-full min-h-screen  bg-[#000000]/98 opacity-99">
       <BgBoss opacity="opacity-5" />
 
-      <div className="w-full bg-linear-to-tl from-transparent via-pink-600/10 to-transparent">
+      <div className="w-full   bg-linear-to-tl from-transparent via-pink-600/10 to-transparent">
 
       
-
+       
       {/* Simple navbar */}
       <div className="sticky top-0 pt-3 z-50 px-2">
         <div className="nav max-w-7xl bg-black/95 rounded-full m-auto py-3 px-6 sm:px-6  flex items-center justify-between">
@@ -212,7 +212,7 @@ function Dashboard() {
 
 
       {/* Participated quizzes */}
-      <div className="max-w-7xl m-auto px-12 mt-24">
+      <div className="max-w-7xl m-auto px-12 mt-24 pb-12">
         <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 font-secondary text-pink-600">
           <BsClock className="w-5 h-5 text-accent text-pink-600" /> Play History
         </h2>
