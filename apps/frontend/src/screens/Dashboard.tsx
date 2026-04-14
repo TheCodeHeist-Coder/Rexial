@@ -87,9 +87,9 @@ function Dashboard() {
           <div className="logo-home">
             <Link
               to={"/"}
-              className="logo font-special text-xl sm:text-2xl md:text-4xl font-bold tracking-wide bg-clip-text text-transparent bg-linear-to-t from-pink-900 to-pink-500"
+              className="logo font-special text-xl sm:text-2xl md:text-4xl font-medium tracking-wide bg-clip-text text-transparent bg-linear-to-t from-pink-900 to-pink-500"
             >
-              Qtrive
+              Raxial
             </Link>
           </div>
 
