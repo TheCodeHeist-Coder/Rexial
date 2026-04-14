@@ -8,9 +8,6 @@ const pass = process.env.SMTP_PASS
 
 const transporter = nodemailer.createTransport({
     service: 'Gmail',
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT),
-    secure: false,
     auth: {
         user: user,
         pass: pass
@@ -24,7 +21,7 @@ export const sendInviteEmail = async (to: string, quizTitle: string, inviteUrl: 
     }
 
     try {
-        await transporter.sendMail({
+        const info = await transporter.sendMail({
 
             from: `"Qtrive" <${user}>`,
             to,
@@ -34,6 +31,8 @@ export const sendInviteEmail = async (to: string, quizTitle: string, inviteUrl: 
                  <p>Click the link below to accept the invitation:</p>
                  <a href="${inviteUrl}">${inviteUrl}</a>`
         });
+
+        console.log("Invitation info is: ", info);
     } catch (error) {
 
         console.log('Error while sending email', error);

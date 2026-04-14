@@ -11,7 +11,7 @@ router.post('/quizzes/:quizId/invite', authMiddleware, inviteCoOrganizerControll
 
 
 // for accepting the invitation
-router.post('/accept/:token', authMiddleware, acceptInvitationController)
+router.post('/invite/accept/:token', authMiddleware, acceptInvitationController)
 
 
 

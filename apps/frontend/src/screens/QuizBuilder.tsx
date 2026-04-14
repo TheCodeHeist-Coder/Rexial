@@ -56,6 +56,7 @@ function QuizBuilder() {
       setLoading(true);
       const { data } = await api.post(`/quizzes/${id}/generate-access-code`);
       setQuiz({ ...quiz, joinCode: data.joinCode, status: 'ACTIVE' })
+     
 
     } catch (error) {
       console.log(error);
@@ -90,7 +91,10 @@ function QuizBuilder() {
     if (!inviteEmail) return;
     try {
       await api.post(`/quizzes/${id}/invite`, { email: inviteEmail });
-      setInviteMsg('Invite sent!');
+
+      console.log("Email is:", inviteEmail)
+     
+      setInviteMsg('Invite sent successfully!');
       setInviteEmail('');
       setTimeout(() => setInviteMsg(''), 3000);
     } catch (err) {

@@ -2,9 +2,12 @@ import { prisma } from "@repo/db";
 import { Response, Request } from "express"
 import { errorResponse } from "../utils/error";
 import { v4 as uuidv4 } from "uuid";
+import { sendInviteEmail } from "../utils/email";
 
 export const inviteCoOrganizerController = async (req: Request, res: Response) => {
     try {
+
+        console.log("API hit ho rhi hai bhai....")
 
         const quizId = req.params.quizId;
         const { email } = req.body;
@@ -43,12 +46,17 @@ export const inviteCoOrganizerController = async (req: Request, res: Response) =
 
         const inviteUrl = `${process.env.FRONTEND_URL}/invite/accept/${inviteToken}`;
 
+        console.log("Invite accept url: ", inviteUrl);
+        console.log("Invite email is: ", email);
+
         // now define a function to send the mail to the co-organizer
+
+        await sendInviteEmail(email, quiz.title, inviteUrl);
 
 
 
         return res.status(200).json({
-            message: 'Invitation Sent'
+            message: 'Invitation Sent Sucessfully...'
         })
 
     } catch (error) {
