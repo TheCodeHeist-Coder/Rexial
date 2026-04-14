@@ -123,6 +123,10 @@ function QuizBuilder() {
     <div className="min-h-screen w-full bg-[#000000]/98 opacity-99">
       <BgBoss opacity="opacity-5" />
 
+        <div className="w-full min-h-screen bg-linear-to-tl from-transparent via-pink-600/10 to-transparent">
+
+      
+
       {/* Navbar */}
       <header className="border-b border-border bg-black/90 max-w-7xl m-auto rounded-b-full  sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -270,6 +274,7 @@ function QuizBuilder() {
                   className="input-field border border-pink-800/50 rounded-xl text-gray-300 font-bold font-secondary outline-none tracking-wider py-3 text-sm px-3 flex-1"
                   value={inviteEmail}
                   onChange={e => setInviteEmail(e.target.value)}
+
                 />
                 <button type="submit" className="outline-none border border-green-500/50 bg-green-600/20 hover:bg-green-600/30 active:scale-95 font-secondary text-white px-3 py-1.5 rounded-lg flex cursor-pointer items-center gap-2"><BsMailbox className="w-4 h-4" /> Send </button>
               </div>
@@ -279,7 +284,7 @@ function QuizBuilder() {
         </div>
       </main>
 
-
+  </div>
     </div>
   )
 }
