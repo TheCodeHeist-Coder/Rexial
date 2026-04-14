@@ -99,6 +99,8 @@ function QuizBuilder() {
       setTimeout(() => setInviteMsg(''), 3000);
     } catch (err) {
       setInviteMsg('Failed to invite.');
+      setInviteEmail('');
+        setTimeout(() => setInviteMsg(''), 3000);
     }
   };
 
@@ -282,7 +284,7 @@ function QuizBuilder() {
                 />
                 <button type="submit" className="outline-none border border-green-500/50 bg-green-600/20 hover:bg-green-600/30 active:scale-95 font-secondary text-white px-3 py-1.5 rounded-lg flex cursor-pointer items-center gap-2"><BsMailbox className="w-4 h-4" /> Send </button>
               </div>
-              {inviteMsg && <p className="text-xs text-green-400">{inviteMsg}</p>}
+              {inviteMsg && <p className="text-sm font-secondary text-green-400 tracking-wider">{inviteMsg}</p>}
             </form>
           </div>
         </div>
