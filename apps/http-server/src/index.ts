@@ -31,7 +31,7 @@ app.use("/api/v1/quizzes", quizzesRoutes)
 app.use("/api/v1/session", quizSessionRoutes)
 
 // invite co-organizer routes:
-app.use("/api/v1/", inviteRoutes)
+app.use("/api/v1", inviteRoutes)
 
 
 

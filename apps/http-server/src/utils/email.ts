@@ -23,16 +23,17 @@ export const sendInviteEmail = async (to: string, quizTitle: string, inviteUrl: 
     try {
         const info = await transporter.sendMail({
 
-            from: `"Qtrive" <${user}>`,
+            from: `"Rexial" <${user}>`,
             to,
             subject: `You have been invited to co-organize: ${quizTitle}`,
-            html: `<h2>You are invited!</h2>
-                 <p>You have been invited to co-organize the quiz <strong>${quizTitle}</strong>.</p>
-                 <p>Click the link below to accept the invitation:</p>
-                 <a href="${inviteUrl}">${inviteUrl}</a>`
+            html: `<div style="font-family:sans-serif">
+  <h2>You're invited to collaborate 🎉</h2>
+  <p><b>${quizTitle}</b></p>
+  <a href="${inviteUrl}" style="padding:10px 16px;background:#ec4899;color:white;border-radius:6px;text-decoration:none;">
+    Accept Invite
+  </a>
+</div>`
         });
-
-        console.log("Invitation info is: ", info);
     } catch (error) {
 
         console.log('Error while sending email', error);

@@ -50,7 +50,6 @@ export const inviteCoOrganizerController = async (req: Request, res: Response) =
         console.log("Invite email is: ", email);
 
         // now define a function to send the mail to the co-organizer
-
         await sendInviteEmail(email, quiz.title, inviteUrl);
 
 
@@ -81,7 +80,7 @@ export const acceptInvitationController = async (req: Request, res: Response) =>
         // verify logged-in user matches invited email if applicable
         const user = await prisma.user.findUnique({
             where: {
-                id: invite.id
+                id: req.userId
             },
         });
 
