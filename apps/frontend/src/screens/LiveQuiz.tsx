@@ -131,6 +131,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
             setCorrectAnswers([]);
             setGameState(GameState.QUESTION);
             setQuestionStartTime(Date.now());
+          
             break;
           case 'quiz:timer-tick':
             setTimeLeft(payload.timeLeft);
@@ -294,13 +295,20 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
 
 
     return (
-      <div className="min-h-screen relative bg-[#000000]/99 opacity-98 text-gray flex flex-col items-center justify-center pt-16 px-4 sm:px-8 md:px-16 lg:px-32 xl:px-80 pb-16 mx-auto overflow-hidden">
+
+      <div className="w-full min-h-screen  bg-[#000000]/99 opacity-98">
+
+    <div className="w-full min-h-screen z-50  bg-linear-to-tl from-transparent via-pink-600/10 to-transparent">  
+
+      
+      <div className="min-h-screen z-0 w-full relative text-gray flex flex-col items-center justify-center pt-16 px-4 sm:px-8 md:px-16 lg:px-32 xl:px-80 pb-16 mx-auto overflow-hidden">
 
         <BgBoss opacity="opacity-5" />
 
+       
         <div className="absolute top-18">
 
-          <Link to={"/"} className="text-4xl tracking-wider font-special bg-clip-text text-transparent bg-linear-to-b from-pink-400 to-pink-600"> LiveKnock </Link>
+          <Link to={"/"} className="text-4xl tracking-wider font-special bg-clip-text text-transparent bg-linear-to-b from-pink-400 to-pink-600"> Rexial </Link>
         </div>
 
         <div className="w-full max-w-5xl flex flex-col">
@@ -314,13 +322,13 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
             </div>
 
             <div
-              className={`w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center text-xl sm:text-2xl md:text-3xl border-2 
+              className={`w-12 border-none  font-special tracking-wide  h-12 sm:w-14 sm:h-14 md:w-16 md:h-16  flex gap-2 items-center justify-center text-xl sm:text-2xl md:text-3xl  
         ${timeLeft <= 5
-                  ? 'border-red-500 text-red-500 animate-pulse'
-                  : 'border-gray-100 text-gray-50'
+                  ? ' text-red-500 animate-pulse'
+                  : 'border-none text-gray-200 '
                 }`}
             >
-              {timeLeft}
+             <span className="font-secondary font-lg tracking-wide font-extrabold bg-clip-text text-transparent bg-linear-to-b from-pink-500 to-pink-700">timeleft: </span> {timeLeft}
             </div>
           </div>
 
@@ -376,6 +384,9 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
           </div>
 
         </div>
+        </div>
+        </div>
+
 
 
 

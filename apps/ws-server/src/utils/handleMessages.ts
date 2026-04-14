@@ -103,18 +103,18 @@ export const handleMessage = async (client: Client, data: any) => {
                 clearInterval(sessionTimers.get(sessionId));
             }
 
-            broadcastToSession(sessionId, 'quiz:timer-tick', { timeleft });
+            broadcastToSession(sessionId, 'quiz:timer-tick', { timeLeft: timeleft });
 
             const timer = setInterval(async () => {
                 timeleft--;
 
-                broadcastToSession(sessionId, 'quiz:timer-tick', { timeleft });
+                broadcastToSession(sessionId, 'quiz:timer-tick', {timeLeft: timeleft });
 
                 if (timeleft <= 0) {
                     clearInterval(timer);
                     sessionTimers.delete(sessionId);
 
-                    // ✅ ONLY RUN ONCE
+                    // Only run once
                     const leaderboard = await getLeaderboard(sessionId);
 
                     broadcastToSession(sessionId, 'quiz:question-results', {
