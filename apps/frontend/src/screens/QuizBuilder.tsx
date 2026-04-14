@@ -74,6 +74,7 @@ function QuizBuilder() {
       const { data } = await api.post(`/quizzes/${id}/start-session`);
       console.log("Api data is", data);
       navigate(`/quiz/manage/${data.sessonId}`);
+      
 
 
 

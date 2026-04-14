@@ -13,6 +13,7 @@ export const handleMessage = async (client: Client, data: any) => {
 
     switch (type) {
         case 'join': {
+           
             const { sessionId, role, participantId, userId } = payload;
             client.sessionId = sessionId;
             client.role = role;
@@ -20,24 +21,52 @@ export const handleMessage = async (client: Client, data: any) => {
             client.userId = userId;
 
             if (role === 'ORGANIZER') {
+                const session = await prisma.quizSession.findUnique({
+                    where: {
+                        id: sessionId
+                    },
+                    include: {quiz: true}
+                });
                 const participants = await prisma.participant.findMany({
                     where: { sessionId }
                 });
 
+                
+
+
                 client.ws.send(JSON.stringify({
-                    type: 'participants',
-                    payload: { participants }
+                    type: 'participants:sync',
+                    payload: { participants,
+                        joinCode: session?.quiz.joinCode
+                     }
                 }));
+
+               
+                console.log("JOIN CODE FROM WS:", payload);
             } else if (role === 'PARTICIPANT' && participantId) {
                 const participant = await prisma.participant.findUnique({
                     where: { id: participantId }
                 });
 
+                
+
                 const participants = await prisma.participant.findMany({
                     where: { sessionId }
                 });
-                broadcastToSession(sessionId, 'participants:sync', { participants });
 
+                const session = await prisma.quizSession.findUnique({
+                                  where: { id: sessionId },
+                                   include: { quiz: true }
+                              });
+
+                             
+                    // this will also send the joincode for the participants
+                    broadcastToSession(sessionId, 'participants:sync', { 
+                        participants,
+                        joinCode: session?.quiz?.joinCode 
+                    });
+                     console.log("JOIN CODE FROM WS:", payload);
+                    
                 broadcastToSession(sessionId, 'participant:joined', { participant });
             }
             break;
