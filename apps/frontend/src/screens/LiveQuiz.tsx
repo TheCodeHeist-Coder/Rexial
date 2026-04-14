@@ -51,8 +51,8 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
   const [questionStartTime, setQuestionStartTime] = useState<number>(0);
   const [qIndex, setQIndex] = useState(0);
 
-    // 1st log for timeleft
-    console.log("Timeleft is: ", timeLeft);
+  // 1st log for timeleft
+  console.log("Timeleft is: ", timeLeft);
 
 
   const topThree = leaderboard.slice(0, 3);
@@ -131,7 +131,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
             setCorrectAnswers([]);
             setGameState(GameState.QUESTION);
             setQuestionStartTime(Date.now());
-          
+
             break;
           case 'quiz:timer-tick':
             setTimeLeft(payload.timeLeft);
@@ -216,59 +216,69 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
   if (gameState === GameState.WAITING) {
 
     return (
-      <div className="min-h-screen flex flex-col items-center bg-[#000000]/98 opacity-99 justify-center bg-surface relative overflow-hidden p-6">
-        <BgBoss opacity="opacity-5" />
-        <div className="z-10 text-center mb-12">
-          {isOrganizer ? (
-            <>
-              <h1 className="text-3xl sm:text-5xl  uppercase  mb-5 font-secondary bg-clip-text text-transparent bg-linear-to-b from-pink-500 to-pink-700 font-extrabold tracking-wider">Get Ready to Play!</h1>
+      <div className="min-h-screen w-full  bg-[#000000]/98 opacity-99">
+        <div className="w-full   bg-linear-to-tl from-transparent via-pink-600/10 to-transparent">
 
-              <button
-                onClick={handleStart}
-                disabled={participants.length === 0}
-                className="btn-primary py-4 px-12 rounded-lg text-xl bg-linear-to-t from-pink-600 to-pink-500 hover:from-pink-800/90 font-secondary transition duration-200  cursor-pointer  font-extrabold uppercase tracking-wider disabled:opacity-50"
-              >
-                Start Game
-              </button>
-            </>
-          ) : (
-            <>
-              <div
-                key={user?.id || 'participant'}
+          <div className="min-h-screen flex flex-col items-center justify-center bg-surface relative overflow-hidden p-6">
+            <BgBoss opacity="opacity-5" />
 
-                className={`w-28 h-28 rounded-3xl bg-linnear-to-br bg-linear-to-t from-pink-800/40 to-transparent p-1 shadow-2xl mx-auto mb-6 `}
-              >
-                <img src={getAvatar(participantId || 'default')} alt="avatar" className="w-full h-full object-cover animate-[bounce_1.6s_infinite]" />
-              </div>
-              <h1 className="text-5xl font-bold mb-2 text-gray-300 font-secondary">You're in, <span className="bg-clip-text text-transparent bg-linear-to-t bg-pink-500 from-pink-700">  {username}! </span></h1>
-              <p className="text-zinc-300 tracking-wider text-lg flex items-center justify-center gap-4">Waiting for host to start <span className="animate-spin"> <FaSpinner className="text-pink-600 w-6 h-6" /> </span> </p>
-            </>
-          )}
-        </div>
 
-        {isOrganizer && (
-          <div className="z-10 w-full max-w-4xl">
-            <div className="flex items-center justify-between mb-4 border-b border-pink-600/30 pb-4">
-              <h3 className="font-bold flex items-center gap-2 font-secondary text-gray-300 tracking-wider text-xl"><LuUserSearch className="w-5 h-5 text-accent" /> Players ({participants.length})</h3>
-            </div>
-            <div className="flex flex-wrap gap-3">
 
-              {participants.map(p => (
-                <div
 
-                  key={p.id}
-                  className="flex flex-col items-center gap-2"
-                >
-                  <div className={`w-18 h-18 rounded-2xl bg-linear-to-br ${getAvatarColor(p.id)} p-1 shadow-lg border border-white/10 overflow-hidden`}>
-                    <img src={getAvatar(p.id)} alt={p.username} className="w-full h-full object-cover" />
+
+            <div className="z-10 text-center mb-12">
+              {isOrganizer ? (
+                <>
+                  <h1 className="text-3xl sm:text-5xl  uppercase  mb-5 font-secondary bg-clip-text text-transparent bg-linear-to-b from-pink-500 to-pink-700 font-extrabold tracking-wider">Get Ready to Play!</h1>
+
+                  <button
+                    onClick={handleStart}
+                    disabled={participants.length === 0}
+                    className="btn-primary py-4 px-12 rounded-lg text-xl bg-linear-to-t from-pink-600 to-pink-500 hover:from-pink-800/90 font-secondary transition duration-200  cursor-pointer  font-extrabold uppercase tracking-wider disabled:opacity-50"
+                  >
+                    Start Game
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div
+                    key={user?.id || 'participant'}
+
+                    className={`w-28 h-28 rounded-3xl bg-linnear-to-br bg-linear-to-t from-pink-800/40 to-transparent p-1 shadow-2xl mx-auto mb-6 `}
+                  >
+                    <img src={getAvatar(participantId || 'default')} alt="avatar" className="w-full h-full object-cover animate-[bounce_1.6s_infinite]" />
                   </div>
-                  <span className="text-xl text-gray-400 font-light tracking-wider text-center max-w-20 font-secondary">{p.username}</span>
-                </div>
-              ))}
-              {participants.length === 0 && <span className="text-zinc-500 italic tracking-wide text-lg">Waiting for players to join...</span>}
+                  <h1 className="text-5xl font-bold mb-2 text-gray-300 font-secondary">You're in, <span className="bg-clip-text text-transparent bg-linear-to-t bg-pink-500 from-pink-700">  {username}! </span></h1>
+                  <p className="text-zinc-300 tracking-wider text-lg flex items-center justify-center gap-4">Waiting for host to start <span className="animate-spin"> <FaSpinner className="text-pink-600 w-6 h-6" /> </span> </p>
+                </>
+              )}
             </div>
+
+            {isOrganizer && (
+              <div className="z-10 w-full max-w-4xl">
+                <div className="flex items-center justify-between mb-4 border-b border-pink-600/30 pb-4">
+                  <h3 className="font-bold flex items-center gap-2 font-secondary text-gray-300 tracking-wider text-xl"><LuUserSearch className="w-5 h-5 text-accent" /> Players ({participants.length})</h3>
+                </div>
+                <div className="flex flex-wrap gap-3">
+
+                  {participants.map(p => (
+                    <div
+
+                      key={p.id}
+                      className="flex flex-col items-center gap-2"
+                    >
+                      <div className={`w-18 h-18 rounded-2xl bg-linear-to-br ${getAvatarColor(p.id)} p-1 shadow-lg border border-white/10 overflow-hidden`}>
+                        <img src={getAvatar(p.id)} alt={p.username} className="w-full h-full object-cover" />
+                      </div>
+                      <span className="text-xl text-gray-400 font-light tracking-wider text-center max-w-20 font-secondary">{p.username}</span>
+                    </div>
+                  ))}
+                  {participants.length === 0 && <span className="text-zinc-500 italic tracking-wide text-lg">Waiting for players to join...</span>}
+                </div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     );
   }
@@ -276,14 +286,21 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
 
   if (gameState === GameState.STARTING) {
     return (
-      <div className="min-h-screen bg-[#000000]/98 opacity-99 flex items-center justify-center bg-primary">
-        <BgBoss opacity="opacity-5" />
-        <h1
+      <div className="bg-[#000000]/98 opacity-99 w-full min-h-screen">
 
-          className="text-8xl font-black bg-clip-text text-transparent bg-linear-to-b from-pink-500 to-pink-700 italic tracking-wide shadow-black drop-shadow-2xl"
-        >
-          GET READY!
-        </h1>
+        <div className="w-full   bg-linear-to-tl from-transparent via-pink-600/10 to-transparent">
+
+
+          <div className="min-h-screen  flex items-center justify-center bg-primary">
+            <BgBoss opacity="opacity-5" />
+            <h1
+
+              className="text-8xl font-black bg-clip-text text-transparent bg-linear-to-b from-pink-500 to-pink-700 italic tracking-wide shadow-black drop-shadow-2xl"
+            >
+              GET READY!
+            </h1>
+          </div>
+        </div>
       </div>
     );
   }
@@ -298,93 +315,93 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
 
       <div className="w-full min-h-screen  bg-[#000000]/99 opacity-98">
 
-    <div className="w-full min-h-screen z-50  bg-linear-to-tl from-transparent via-pink-600/10 to-transparent">  
-
-      
-      <div className="min-h-screen z-0 w-full relative text-gray flex flex-col items-center justify-center pt-16 px-4 sm:px-8 md:px-16 lg:px-32 xl:px-80 pb-16 mx-auto overflow-hidden">
-
-        <BgBoss opacity="opacity-5" />
-
-       
-        <div className="absolute top-18">
-
-          <Link to={"/"} className="text-4xl tracking-wider font-special bg-clip-text text-transparent bg-linear-to-b from-pink-400 to-pink-600"> Rexial </Link>
-        </div>
-
-        <div className="w-full max-w-5xl flex flex-col">
+        <div className="w-full min-h-screen z-50  bg-linear-to-tl from-transparent via-pink-600/10 to-transparent">
 
 
+          <div className="min-h-screen z-0 w-full relative text-gray flex flex-col items-center justify-center pt-16 px-4 sm:px-8 md:px-16 lg:px-32 xl:px-80 pb-16 mx-auto overflow-hidden">
+
+            <BgBoss opacity="opacity-5" />
 
 
-          <div className="flex justify-between items-center mb-6 px-4 sm:mb-8">
-            <div className="text-2xl sm:text-3xl md:text-4xl text-pink-600 tracking-wider font-special">
-              Question: {qIndex + 1}
+            <div className="absolute top-18">
+
+              <Link to={"/"} className="text-4xl tracking-wider font-special bg-clip-text text-transparent bg-linear-to-b from-pink-400 to-pink-600"> Rexial </Link>
             </div>
 
-            <div
-              className={`w-12 border-none  font-special tracking-wide  h-12 sm:w-14 sm:h-14 md:w-16 md:h-16  flex gap-2 items-center justify-center text-xl sm:text-2xl md:text-3xl  
+            <div className="w-full max-w-5xl flex flex-col">
+
+
+
+
+              <div className="flex justify-between items-center mb-6 px-4 sm:mb-8">
+                <div className="text-xl sm:text-3xl md:text-4xl text-pink-600 tracking-wider font-special">
+                  Question: {qIndex + 1}
+                </div>
+
+                <div
+                  className={`w-12 border-none px-8 sm:px-1 font-special tracking-wide  h-12 sm:w-14 sm:h-14 md:w-16 md:h-16  flex gap-2 items-center justify-center text-lg sm:text-2xl md:text-3xl  
         ${timeLeft <= 5
-                  ? ' text-red-500 animate-pulse'
-                  : 'border-none text-gray-200 '
-                }`}
-            >
-             <span className="font-secondary font-lg tracking-wide font-extrabold bg-clip-text text-transparent bg-linear-to-b from-pink-500 to-pink-700">timeleft: </span> {timeLeft}
+                      ? ' text-red-500 animate-pulse'
+                      : 'border-none text-gray-200 '
+                    }`}
+                >
+                  <span className="font-secondary font-lg tracking-wide font-extrabold bg-clip-text text-transparent bg-linear-to-b from-pink-500 to-pink-700">timeleft: </span> {timeLeft}
+                </div>
+              </div>
+
+              <h2 className="text-2xl md:text-3xl lg:text-4xl bg-clip-text text-transparent bg-linear-to-b from-pink-500 to-pink-600/80 font-secondary tracking-wider font-bold text-center mt-6 sm:mt-10 mb-10 sm:mb-16 px-2 leading-snug">
+                {currentQuestion?.text}
+              </h2>
+
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mt-auto font-secondary tracking-wider">
+                {currentQuestion?.answers.map((answer: any, i: number) => {
+                  const isSelected = selectedAnswer === answer.id;
+                  const isCorrect = correctAnswers.includes(answer.id);
+                  const showResults = gameState === GameState.RESULTS;
+
+                  let bgClass =
+                    "bg-zinc-800/20 text-gray-300 hover:bg-zinc-700/20 border border-gray-700/40 cursor-pointer";
+
+                  let opacityClass =
+                    showResults && !isCorrect ? "opacity-50" : "opacity-100";
+
+                  if (showResults) {
+                    if (isCorrect)
+                      bgClass =
+                        "bg-green-500/60 border-green-400 font-secondary text-gray-100";
+                    else if (isSelected && !isCorrect)
+                      bgClass =
+                        "bg-red-500/20 font-secondary border-red-500/50 text-red-200";
+                    else bgClass = "bg-gray-800/10 border-gray-700 text-zinc-300";
+                  } else if (isSelected) {
+                    bgClass =
+                      "border border-pink-800/30 bg-pink-600/20 font-secondary text-white shadow-[0_0_12px_rgba(139,92,246,0.3)]";
+                  }
+
+                  return (
+                    <button
+                      key={answer.id}
+                      onClick={() => handleAnswer(answer.id)}
+                      disabled={Boolean(selectedAnswer) || showResults}
+                      className={`relative w-full px-4 sm:px-6 md:px-12 py-3 sm:py-4 rounded-full border-2 text-base sm:text-lg md:text-xl font-bold flex items-center justify-center text-center transition-all ${bgClass} ${opacityClass}`}
+                    >
+                      {answer.text}
+
+                      {showResults && isCorrect && (
+                        <BiCheckCircle className="absolute right-4 w-5 h-5 sm:w-6 sm:h-6 opacity-80" />
+                      )}
+
+                      {showResults && isSelected && !isCorrect && (
+                        <BiXCircle className="absolute right-4 w-5 h-5 sm:w-6 sm:h-6 opacity-80" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
             </div>
           </div>
-
-          <h2 className="text-2xl md:text-3xl lg:text-4xl bg-clip-text text-transparent bg-linear-to-b from-pink-500 to-pink-600/80 font-secondary tracking-wider font-bold text-center mt-6 sm:mt-10 mb-10 sm:mb-16 px-2 leading-snug">
-            {currentQuestion?.text}
-          </h2>
-
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mt-auto font-secondary tracking-wider">
-            {currentQuestion?.answers.map((answer: any, i: number) => {
-              const isSelected = selectedAnswer === answer.id;
-              const isCorrect = correctAnswers.includes(answer.id);
-              const showResults = gameState === GameState.RESULTS;
-
-              let bgClass =
-                "bg-zinc-800/20 text-gray-300 hover:bg-zinc-700/20 border border-gray-700/40 cursor-pointer";
-
-              let opacityClass =
-                showResults && !isCorrect ? "opacity-50" : "opacity-100";
-
-              if (showResults) {
-                if (isCorrect)
-                  bgClass =
-                    "bg-green-500/60 border-green-400 font-secondary text-gray-100";
-                else if (isSelected && !isCorrect)
-                  bgClass =
-                    "bg-red-500/20 font-secondary border-red-500/50 text-red-200";
-                else bgClass = "bg-gray-800/10 border-border";
-              } else if (isSelected) {
-                bgClass =
-                  "border border-pink-800/30 bg-pink-600/20 font-secondary text-white shadow-[0_0_12px_rgba(139,92,246,0.3)]";
-              }
-
-              return (
-                <button
-                  key={answer.id}
-                  onClick={() => handleAnswer(answer.id)}
-                  disabled={Boolean(selectedAnswer) || showResults}
-                  className={`relative w-full px-4 sm:px-6 md:px-12 py-3 sm:py-4 rounded-full border-2 text-base sm:text-lg md:text-xl font-bold flex items-center justify-center text-center transition-all ${bgClass} ${opacityClass}`}
-                >
-                  {answer.text}
-
-                  {showResults && isCorrect && (
-                    <BiCheckCircle className="absolute right-4 w-5 h-5 sm:w-6 sm:h-6 opacity-80" />
-                  )}
-
-                  {showResults && isSelected && !isCorrect && (
-                    <BiXCircle className="absolute right-4 w-5 h-5 sm:w-6 sm:h-6 opacity-80" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-        </div>
-        </div>
         </div>
 
 
@@ -402,7 +419,15 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
 
   if (gameState === GameState.LEADERBOARD) {
     return (
-      <div className="min-h-screen  bg-[#000000]/98 opacity-99 flex flex-col items-center justify-center p-6 bg-surface relative overflow-hidden">
+
+      <div className=" bg-[#000000]/98 opacity-99 min-h-screen">
+
+        <div className="w-full min-h-screen z-50  bg-linear-to-tl from-transparent via-pink-600/10 to-transparent">
+          
+
+     
+      
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-surface relative overflow-hidden">
         <BgBoss opacity="opacity-5" />
 
 
@@ -443,6 +468,9 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
           </div>
         )}
       </div>
+
+        </div>
+       </div>
     );
   }
 
@@ -451,7 +479,15 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
 
   if (gameState === GameState.ENDED) {
     return (
-      <div className="min-h-screen  bg-[#000000]/98 opacity-99 flex flex-col items-center justify-center p-6  overflow-hidden">
+
+       <div className="w-full min-h-screen  bg-[#000000]/98 opacity-99">
+
+        <div className="w-full min-h-screen z-50  bg-linear-to-tl from-transparent via-pink-600/10 to-transparent">
+
+     
+     
+
+      <div className="min-h-screen  flex flex-col items-center justify-center p-6  overflow-hidden">
         <BgBoss opacity="opacity-5" />
 
         <div>
@@ -537,6 +573,9 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
           {isOrganizer ? "Back to Dashboard" : "Play Again"}
         </Link>
       </div>
+         </div>
+
+        </div>
     );
   }
 

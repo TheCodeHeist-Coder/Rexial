@@ -12,8 +12,8 @@ function Navbar() {
             <div className="nav bg-black/98 flex items-center justify-between px-6 sm:px-6 md:px-15 border border-b-rose-800 rounded-b-full sm:rounded-b-full max-w-7xl mx-auto h-14 sm:h-16">
 
                 {/* Logo */}
-                <div className="logo font-special text-xl sm:text-2xl md:text-4xl font-bold tracking-wider bg-clip-text text-transparent bg-linear-to-t from-pink-600 to-pink-300">
-                    Qtrive
+                <div className="logo font-special text-xl sm:text-2xl md:text-4xl  tracking-wider bg-clip-text text-transparent bg-linear-to-t from-pink-600 to-pink-300">
+                    Rexial
                 </div>
 
                 {/* Right Section */}
