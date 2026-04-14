@@ -1,7 +1,7 @@
 # ***Real-Time Quiz Platform***
 
 ## 📌 Overview
-This project is a **real-time quiz hosting platform** where users can create, host, and participate in quizzes seamlessly using a unique join code. It is designed to provide an interactive and engaging experience with live dashboards, avatars, and collaborative hosting.
+Rexial is a **real-time quiz hosting platform** where users can create, host, and participate in quizzes seamlessly using a unique join code. It is designed to provide an interactive and engaging experience with live dashboards, avatars, and collaborative hosting.
 
 The platform evolves in multiple versions:
 
