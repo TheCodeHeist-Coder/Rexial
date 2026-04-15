@@ -40,7 +40,7 @@ export const userRegisterController = async (req: Request, res: Response) => {
         // generating token...
         const token = jwt.sign({
             userId: user.id
-        }, process.env.JWT_SECRET || "secret", { expiresIn: '5d' });
+        }, process.env.JWT_SECRET || "secret", { expiresIn: '30d' });
 
         return res.status(201).json({
             token,
@@ -82,7 +82,7 @@ export const userLoginController = async (req: Request, res: Response) => {
 
         const token = jwt.sign({
             userId: user.id
-        }, process.env.JWT_SECRET || "secret", { expiresIn: '5d' });
+        }, process.env.JWT_SECRET || "secret", { expiresIn: '30d' });
 
         return res.status(200).json({
             token,
