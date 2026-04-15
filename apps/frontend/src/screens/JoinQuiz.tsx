@@ -28,6 +28,11 @@ function JoinQuiz() {
 
         try {
             const { data } = await api.post('/session/join', { code, username });
+
+
+            localStorage.setItem("participantId", data.participantId);
+            localStorage.setItem("username", username);
+
             // Redirect to play arena with session/participant data
             navigate(`/quiz/play/${data.sessionId}`, {
                 state: { participantId: data.participantId, username, quizTitle: data.quizTitle }

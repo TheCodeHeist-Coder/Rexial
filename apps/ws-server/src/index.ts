@@ -1,6 +1,8 @@
 import WebSocket, { WebSocketServer } from 'ws';
 import { clients } from './clients/index.js';
 import { handleMessage } from './utils/handleMessages.js';
+import { prisma } from '@repo/db';
+import { broadcastToSession } from './utils/broadcastTosession.js';
 
 
 
@@ -39,17 +41,50 @@ wss.on('connection', (ws: WebSocket) => {
             console.log("Raw Message", parsedMessage)
 
             const data = JSON.parse(parsedMessage);
-            
-            await handleMessage(client,data);
-                
+
+            await handleMessage(client, data);
+
 
         } catch (error) {
             console.log('WS Error', error)
         }
     });
 
-    ws.on('close', () => {
-        console.log('Client disconnected');
+    ws.on('close', async () => {
+
+        clients.delete(client);
+
+
+        setTimeout(async () => {
+
+            const stillConnected = [...clients].some(c => c.participantId === client.participantId && c.ws.readyState === WebSocket.OPEN);
+
+            if (!stillConnected && client.participantId) {
+
+
+                await prisma.participant.delete({
+                    where: { id: client.participantId }
+                });
+
+                const participants = await prisma.participant.findMany({
+                    where: { sessionId: client.sessionId }
+                });
+
+                broadcastToSession(client.sessionId, 'participants:sync', { participants });
+
+            }
+
+
+
+        }, 30000)
+
+
+
+        
+      
+
+
+
     })
 })
 

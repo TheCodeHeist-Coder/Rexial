@@ -14,6 +14,8 @@ export const handleMessage = async (client: Client, data: any) => {
     switch (type) {
         case 'join': {
            
+            console.log("JOIN EVENT")
+
             const { sessionId, role, participantId, userId } = payload;
             client.sessionId = sessionId;
             client.role = role;
@@ -65,8 +67,7 @@ export const handleMessage = async (client: Client, data: any) => {
                         participants,
                         joinCode: session?.quiz?.joinCode 
                     });
-                     console.log("JOIN CODE FROM WS:", payload);
-                    
+                  
                 broadcastToSession(sessionId, 'participant:joined', { participant });
             }
             break;
