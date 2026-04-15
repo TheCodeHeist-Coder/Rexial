@@ -52,38 +52,7 @@ wss.on('connection', (ws: WebSocket) => {
 
     ws.on('close', async () => {
 
-        clients.delete(client);
-
-
-        setTimeout(async () => {
-
-            const stillConnected = [...clients].some(c => c.participantId === client.participantId && c.ws.readyState === WebSocket.OPEN);
-
-            if (!stillConnected && client.participantId) {
-
-
-                await prisma.participant.delete({
-                    where: { id: client.participantId }
-                });
-
-                const participants = await prisma.participant.findMany({
-                    where: { sessionId: client.sessionId }
-                });
-
-                broadcastToSession(client.sessionId, 'participants:sync', { participants });
-
-            }
-
-
-
-        }, 30000)
-
-
-
-        
-      
-
-
+        console.log('Client disconnected...');
 
     })
 })

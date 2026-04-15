@@ -3,7 +3,7 @@ import { useAuthStore } from "../store/authStore";
 import { useEffect, useState } from "react";
 import { LuUserSearch } from "react-icons/lu";
 import { getAvatar, getAvatarColor } from "../utils/Avatars";
-import { BiCheckCircle, BiTrophy, BiXCircle } from "react-icons/bi";
+import { BiCheckCircle, BiXCircle } from "react-icons/bi";
 import BgBoss from "../components/BgBoss";
 import { FaSpinner } from "react-icons/fa6";
 import { MdViewInAr } from "react-icons/md";
@@ -34,8 +34,8 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
 
   const { user } = useAuthStore();
 
-  const participantId = location.state?.participantId || localStorage.getItem("participantId");
-  const username = location.state?.username || localStorage.getItem("username");
+  const participantId = location.state?.participantId;
+  const username = location.state?.username;
 
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [gameState, setGameState] = useState<GameState>('WAITING');
@@ -52,9 +52,6 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [questionStartTime, setQuestionStartTime] = useState<number>(0);
   const [qIndex, setQIndex] = useState(0);
-
-  // 1st log for timeleft
-  console.log("Timeleft is: ", timeLeft);
 
 
   const topThree = leaderboard.slice(0, 3);
@@ -103,8 +100,6 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
             userId: user?.id
           }
         }));
-
-        console.log("JOin sent...")
       };
 
 
@@ -149,17 +144,11 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
             break;
           case 'quiz:ended':
             setGameState(GameState.ENDED);
-            localStorage.removeItem("participantId");
-            localStorage.removeItem("username");
             break;
         }
       };
 
-      socket.onclose = () => {
 
-        console.log("ws disconnected... retrying...");
-        setTimeout(initWebSocket, 2000);
-      };
 
       socket.onerror = () => {
         socket?.close();
@@ -221,9 +210,6 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
       }
     }))
   }
-
-
-  console.log("JOIN CODE STATE:", joinCode);
 
 
   if (gameState === GameState.WAITING) {
