@@ -27,7 +27,7 @@ function Navbar() {
                         rel="noreferrer"
                     >
                         <BsGithub className="w-4 h-4 sm:w-5 sm:h-5" />
-                        <span className="hidden sm:inline">Github</span>
+                        <span className="hidden sm:inline font-secondary tracking-wider font-bold">Contribute</span>
                     </a>
 
                     {/* Buttons */}
@@ -35,13 +35,6 @@ function Navbar() {
 
                         {user ? (
                             <>
-                                <Link
-                                    to={"/host-quiz"}
-                                    className="font-secondary font-semibold border border-pink-500 hover:border-pink-700 px-3 sm:px-5 md:px-6 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm md:text-lg active:scale-90 text-pink-600 whitespace-nowrap"
-                                >
-                                    Host
-                                </Link>
-
                                 <Link
                                     to="/dashboard"
                                     className="font-secondary font-semibold rounded-full text-xs sm:text-sm md:text-lg bg-linear-to-r from-pink-500 to-pink-700 hover:to-pink-500 hover:from-pink-700 transition duration-200 active:scale-90 px-3 sm:px-5 md:px-6 py-1 sm:py-2 text-gray-900 whitespace-nowrap"

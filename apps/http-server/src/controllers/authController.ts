@@ -4,9 +4,6 @@ import { prisma } from "@repo/db"
 import bcrypt from 'bcrypt'
 import jwt from "jsonwebtoken"
 import { errorResponse } from "../utils/error"
-import id from "zod/v4/locales/id.js"
-import { email } from "zod"
-import tr from "zod/v4/locales/tr.js"
 
 
 export const userRegisterController = async (req: Request, res: Response) => {
