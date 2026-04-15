@@ -38,3 +38,24 @@
 
 #### ***Final Command***
  -> See and use the page and after understanding the codebase, Implementing this Feature in frontend and backend both. 
+
+
+ ## (3) Third Issue (Functionality Add on)
+
+   -> Backend route `/apps/http-server/routes/quiz.ts`
+  #### -> Check the page in frontend `/apps/frontend/src/screens/QuizBuilder.tsx`
+        * This is the page where we can create question 
+        * But in this page after creating Questions there is no option of editing or updating Questions.
+        * Therefore, you have to implement the functionalty of updating the created questions
+
+
+## (4) Fourth Issue (Ws closed connection logic)
+
+  -> Backend route `/apps/ws-server/src/index.ts`
+
+#### -> Check the page in ws-server , index.ts where you have to:-
+      * Implement the logic for closing connection
+      * When a participant join the quiz and leaves instantly
+      * then the connectiin should cut from the socket and the participant should not appear in the quiz
+      * But here, participant is still present after leaving the quiz.
+      * Implement this logic

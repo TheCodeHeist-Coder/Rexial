@@ -1,5 +1,6 @@
 import BgBoss from "../components/BgBoss"
 import Flow from "../components/Flow"
+import Footer from "../components/Footer"
 import HeroSection from "../components/HeroSection"
 import Invitation from "../components/Invitation"
 import Navbar from "../components/Navbar"
@@ -23,6 +24,9 @@ function LandingPage() {
 
     {/* Invitiion INfo */}
     <Invitation />
+
+
+    <Footer />
 
      </div>
 

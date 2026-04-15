@@ -4,9 +4,6 @@ import { prisma } from "@repo/db"
 import bcrypt from 'bcrypt'
 import jwt from "jsonwebtoken"
 import { errorResponse } from "../utils/error"
-import id from "zod/v4/locales/id.js"
-import { email } from "zod"
-import tr from "zod/v4/locales/tr.js"
 
 
 export const userRegisterController = async (req: Request, res: Response) => {
@@ -40,7 +37,7 @@ export const userRegisterController = async (req: Request, res: Response) => {
         // generating token...
         const token = jwt.sign({
             userId: user.id
-        }, process.env.JWT_SECRET || "secret", { expiresIn: '5d' });
+        }, process.env.JWT_SECRET || "secret", { expiresIn: '30d' });
 
         return res.status(201).json({
             token,
@@ -82,7 +79,7 @@ export const userLoginController = async (req: Request, res: Response) => {
 
         const token = jwt.sign({
             userId: user.id
-        }, process.env.JWT_SECRET || "secret", { expiresIn: '5d' });
+        }, process.env.JWT_SECRET || "secret", { expiresIn: '30d' });
 
         return res.status(200).json({
             token,

@@ -37,7 +37,7 @@ function Signup() {
             setError(error.response?.data?.erorr || "Failed to register...")
 
         } finally {
-            setLoading(true);
+            setLoading(false);
         }
 
 

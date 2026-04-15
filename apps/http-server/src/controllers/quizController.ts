@@ -92,11 +92,12 @@ export const getAllQuizesController = async (req: Request, res: Response) => {
 // getting quiz by id
 export const getQuizByIdController = async (req: Request, res: Response) => {
     try {
-        const { id } = req.params;
+        const { quizId } = req.params;
 
-        const quiz = await prisma.quiz.findFirst({
+
+        const quiz = await prisma.quiz.findUnique({
             where: {
-                id: id as string,
+                id: quizId as string,
                 quizOrganizers: {
                     some: {
                         userId: req.userId,
@@ -139,11 +140,11 @@ export const getQuizByIdController = async (req: Request, res: Response) => {
 export const generateAccessCodeController = async (req: Request, res: Response) => {
     try {
 
-        const { id } = req.params;
+        const { quizId } = req.params;
 
         const isOrganizer = await prisma.quizOrganizer.findFirst({
             where: {
-                quizId: id as string,
+                quizId: quizId as string,
                 userId: req.userId,
                 inviteStatus: 'ACCEPTED'
             }
@@ -163,7 +164,7 @@ export const generateAccessCodeController = async (req: Request, res: Response) 
             if (!isCodeExisted) {
                 const quiz = await prisma.quiz.update({
                     where: {
-                        id: id as string
+                        id: quizId as string
                     },
                     data: {
                         joinCode: code, status: 'ACTIVE'

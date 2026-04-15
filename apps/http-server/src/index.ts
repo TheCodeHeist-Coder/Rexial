@@ -6,6 +6,7 @@ import cors from 'cors'
 import authRoutes from "./routes/authRoutes"
 import quizzesRoutes from "./routes/quiz"
 import quizSessionRoutes from "./routes/session"
+import inviteRoutes from './routes/invite'
 
 const app: Express = express()
 
@@ -29,7 +30,8 @@ app.use("/api/v1/quizzes", quizzesRoutes)
 // quiz session routes
 app.use("/api/v1/session", quizSessionRoutes)
 
-
+// invite co-organizer routes:
+app.use("/api/v1", inviteRoutes)
 
 
 
