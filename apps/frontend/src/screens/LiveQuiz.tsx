@@ -34,8 +34,8 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
 
   const { user } = useAuthStore();
 
-  const participantId = location.state?.participantId;
-  const username = location.state?.username;
+  const participantId = location.state?.participantId || localStorage.getItem("participantId");
+  const username = location.state?.username || localStorage.getItem("username");
 
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [gameState, setGameState] = useState<GameState>('WAITING');
@@ -110,8 +110,6 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
 
       socket.onmessage = (event) => {
 
-        console.log("WS MESSAGE:", event.data);
-
         const { type, payload } = JSON.parse(event.data);
 
         switch (type) {
@@ -151,16 +149,24 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
             break;
           case 'quiz:ended':
             setGameState(GameState.ENDED);
+            localStorage.removeItem("participantId");
+            localStorage.removeItem("username");
             break;
         }
       };
 
+      socket.onclose = () => {
+
+        console.log("ws disconnected... retrying...");
+        setTimeout(initWebSocket, 2000);
+      };
+
+      socket.onerror = () => {
+        socket?.close();
+      };
+
       setWs(socket);
     };
-
-
-    // 2nd log for timeleft
-    console.log("Timeleft is: ", timeLeft);
 
 
 
@@ -238,7 +244,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
               {joinCode && (
                 <div className="mb-40 text-center border border-pink-700/30 shadow-md shadow-pink-600/50 py-3 rounded-2xl ">
                   <p className="text-lg sm:text-4xl font-semibold  font-secondary bg-clip-text text-transparent bg-linear-to-b from-pink-500 to-pink-700 mb-3 tracking-wider">
-                     Quiz-Access-Code
+                    Quiz-Access-Code
                   </p>
                   <h2 className="sm:text-6xl text-3xl font-special tracking-widest text-pink-500">
                     {joinCode}
