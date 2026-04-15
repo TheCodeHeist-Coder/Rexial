@@ -38,3 +38,12 @@
 
 #### ***Final Command***
  -> See and use the page and after understanding the codebase, Implementing this Feature in frontend and backend both. 
+
+
+ ## (3) Third Issue (Functionality Add on)
+
+   -> Backend route `/apps/http-server/routes/quiz.ts`
+  #### -> Check the page in frontend `/apps/frontend/src/screens/QuizBuilder.tsx`
+        * This is the page where we can create question 
+        * But in this page after creating Questions there is no option of editing or updating Questions.
+        * Therefore, you have to implement the functionalty of updating the created questions
