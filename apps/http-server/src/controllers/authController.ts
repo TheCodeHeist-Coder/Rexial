@@ -12,7 +12,6 @@ export const userRegisterController = async (req: Request, res: Response) => {
 
         const { name, email, password } = req.body;
 
-        console.log("The name , email and passwords are: ", name, email, password)
 
         // is user existed already
         const isUserExisted = await prisma.user.findUnique({
@@ -49,7 +48,6 @@ export const userRegisterController = async (req: Request, res: Response) => {
         })
 
     } catch (error) {
-        console.log("signupError", error)
         return errorResponse(res, 500, "Internal Server Error...")
 
     }
@@ -91,7 +89,6 @@ export const userLoginController = async (req: Request, res: Response) => {
         })
 
     } catch (error) {
-        console.log("Login error is: ", error);
         return errorResponse(res, 500, "Internal Server Errror....")
     }
 }
@@ -116,7 +113,6 @@ export const getLoggedInUserController = async (req: Request, res: Response) => 
         })
 
     } catch (error) {
-        console.log("Auth verification failed", error);
         return errorResponse(res, 500, "Internal Server Error")
     }
 }
