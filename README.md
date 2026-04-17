@@ -11,6 +11,9 @@ The platform evolves in multiple versions:
 
 ---
 
+## Version - 1 (DEMO-VIDEO)
+## [[Watch the Demo video of version-1]](/assets/versio1-video//Screencast%20From%202026-04-18%2000-37-22.mp4)
+
 ## 🛠️ Tech Stack
 
 ### Monorepo & Tooling
