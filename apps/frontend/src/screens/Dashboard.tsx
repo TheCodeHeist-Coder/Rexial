@@ -266,13 +266,13 @@ function Dashboard() {
                   type="text"
                   autoFocus
                   placeholder="Enter quiz title..."
-                  className="input-field mb-6 py-3 px-5 font-bold tracking-wider font-secondary outline-none border border-pink-800 w-96 rounded-xl text-gray-300"
+                  className="input-field mb-6 py-3 px-5 font-bold tracking-wider font-secondary outline-none border border-pink-800 sm:w-96 min-w-60 m-auto rounded-xl text-gray-300"
                   value={newTitle}
                   onChange={e => setNewTitle(e.target.value)}
                 />
                 <textarea
                   placeholder="Description (optional)"
-                  className="input-field mb-6 resize-none h-24 text-gray-300 font-bold font-secondary tracking-wider border border-pink-900 outline-none py-2 px-4 rounded-xl"
+                  className="input-field mb-6 resize-none h-24 text-gray-300 font-bold font-secondary tracking-wider border border-pink-900 outline-none sm:w-96 min-w-60 m-auto py-2 px-4 rounded-xl"
                   value={newDescription}
                   onChange={e => setNewDescription(e.target.value)}
                 />
