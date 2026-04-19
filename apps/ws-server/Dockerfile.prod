@@ -1,0 +1,46 @@
+FROM node:22-alpine AS base
+
+RUN npm install -g pnpm
+
+WORKDIR /app
+
+# dependencies stage
+FROM base AS deps
+
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json ./
+
+COPY apps ./apps
+
+COPY packages ./packages
+
+RUN pnpm install --frozen-lockfile
+
+
+# build stage
+FROM deps AS build
+
+RUN pnpm --filter ws-server build
+
+
+# prod stage
+FROM base AS runner
+
+ENV NODE_ENV=production
+
+COPY --from=build /app/package.json .
+COPY --from=build /app/pnpm-workspace.yaml .
+COPY --from=build /app/pnpm-lock.yaml .
+COPY --from=build /app/turbo.json .
+COPY --from=build /app/packages ./packages
+COPY --from=build /app/apps/ws-server ./apps/ws-server
+
+
+
+RUN pnpm install --frozen-lockfile --prod
+RUN pnpm prune --prod
+
+WORKDIR /app/apps/ws-server
+
+EXPOSE 8080
+
+CMD [ "pnpm", "run", "start" ]
