@@ -123,12 +123,6 @@ importers:
       '@types/nodemon':
         specifier: ^3.1.1
         version: 3.1.1
-      '@types/passport':
-        specifier: ^1.0.17
-        version: 1.0.17
-      '@types/passport-google-oauth20':
-        specifier: ^2.0.17
-        version: 2.0.17
       '@types/uuid':
         specifier: ^11.0.0
         version: 11.0.0
@@ -1170,18 +1164,6 @@ packages:
   '@types/nodemon@3.1.1':
     resolution: {integrity: sha512-q29nOOLwcTTPzp6VABHTybbLYdPF5aW6FZARvax8JGhYdQvLtZXX3z2MPP1KkaBDxVsNp7ehl2OSuTbIpsTihg==}
     deprecated: This is a stub types definition. nodemon provides its own type definitions, so you do not need this installed.
-
-  '@types/oauth@0.9.6':
-    resolution: {integrity: sha512-H9TRCVKBNOhZZmyHLqFt9drPM9l+ShWiqqJijU1B8P3DX3ub84NjxDuy+Hjrz+fEca5Kwip3qPMKNyiLgNJtIA==}
-
-  '@types/passport-google-oauth20@2.0.17':
-    resolution: {integrity: sha512-MHNOd2l7gOTCn3iS+wInPQMiukliAUvMpODO3VlXxOiwNEMSyzV7UNvAdqxSN872o8OXx1SqPDVT6tLW74AtqQ==}
-
-  '@types/passport-oauth2@1.8.0':
-    resolution: {integrity: sha512-6//z+4orIOy/g3zx17HyQ71GSRK4bs7Sb+zFasRoc2xzlv7ZCJ+vkDBYFci8U6HY+or6Zy7ajf4mz4rK7nsWJQ==}
-
-  '@types/passport@1.0.17':
-    resolution: {integrity: sha512-aciLyx+wDwT2t2/kJGJR2AEeBz0nJU4WuRX04Wu9Dqc5lSUtwu0WERPHYsLhF9PtseiAMPBGNUOtFjxZ56prsg==}
 
   '@types/pg@8.11.11':
     resolution: {integrity: sha512-kGT1qKM8wJQ5qlawUrEkXgvMSXoV213KfMGXcwfDwUIfUHXqXYXOfS1nE1LINRJVVVx5wCm70XnFlMHaIcQAfw==}
@@ -4348,26 +4330,6 @@ snapshots:
   '@types/nodemon@3.1.1':
     dependencies:
       nodemon: 3.1.14
-
-  '@types/oauth@0.9.6':
-    dependencies:
-      '@types/node': 25.5.0
-
-  '@types/passport-google-oauth20@2.0.17':
-    dependencies:
-      '@types/express': 5.0.6
-      '@types/passport': 1.0.17
-      '@types/passport-oauth2': 1.8.0
-
-  '@types/passport-oauth2@1.8.0':
-    dependencies:
-      '@types/express': 5.0.6
-      '@types/oauth': 0.9.6
-      '@types/passport': 1.0.17
-
-  '@types/passport@1.0.17':
-    dependencies:
-      '@types/express': 5.0.6
 
   '@types/pg@8.11.11':
     dependencies:
