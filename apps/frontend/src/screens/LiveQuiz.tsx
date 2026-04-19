@@ -366,7 +366,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
 
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mt-auto font-secondary tracking-wider">
-                {currentQuestion?.answers.map((answer: any, i: number) => {
+                {currentQuestion?.answers.map((answer: any) => {
                   const isSelected = selectedAnswer === answer.id;
                   const isCorrect = correctAnswers.includes(answer.id);
                   const showResults = gameState === GameState.RESULTS;

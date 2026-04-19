@@ -1,8 +1,8 @@
-import { Link, useNavigate, useParams } from "react-router-dom"
+import { Link, useParams } from "react-router-dom"
 import { useAuthStore } from "../store/authStore";
 import { useEffect, useState } from "react";
 import { api } from "../services/api";
-import { BiBrain, BiCheckCircle, BiLoader, BiXCircle } from "react-icons/bi";
+import {  BiCheckCircle, BiLoader, BiXCircle } from "react-icons/bi";
 import BgBoss from "../components/BgBoss";
 
 
