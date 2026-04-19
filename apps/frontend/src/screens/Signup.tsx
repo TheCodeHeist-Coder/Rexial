@@ -31,8 +31,6 @@ function Signup() {
             const { data } = await api.post('/auth/register', { name, email, password });
             setAuth(data.user, data.token);
             navigate('/dashboard');
-
-
         } catch (error: any) {
             setError(error.response?.data?.erorr || "Failed to register...")
 

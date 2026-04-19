@@ -19,8 +19,6 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/nodemailer": "^8.0.0",
     "@types/nodemon": "^3.1.1",
-    "@types/passport": "^1.0.17",
-    "@types/passport-google-oauth20": "^2.0.17",
     "@types/uuid": "^11.0.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
