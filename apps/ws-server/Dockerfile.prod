@@ -19,6 +19,8 @@ RUN pnpm install --frozen-lockfile
 # build stage
 FROM deps AS build
 
+RUN pnpm --filter @repo/db run db:generate
+
 RUN pnpm --filter ws-server build
 
 
