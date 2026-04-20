@@ -73,7 +73,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
     let isMounted = true;
 
 
-    const wsHost = 'ws://localhost:8080/';
+    const wsHost = import.meta.env.VITE_WS_URL || 'ws://localhost:8080/';
 
 
 
