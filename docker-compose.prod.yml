@@ -38,11 +38,14 @@ services:
         build:
             context: .
             dockerfile: apps/http-server/Dockerfile.prod
+            args:
+                DATABASE_URL: ${DATABASE_URL}
         image: codeheist/rexial-http-server:latest
         container_name: rexial-http-server-prod
         restart: always
         env_file:
             - .env.prod
+
         networks:
             - rexial-network
         depends_on:
@@ -59,6 +62,8 @@ services:
         build:
             context: .
             dockerfile: apps/ws-server/Dockerfile.prod
+            args:
+                DATABASE_URL: ${DATABASE_URL}
         image: codeheist/rexial-ws-server:latest
         container_name: rexial-ws-server-prod
         restart: always
