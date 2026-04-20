@@ -32,12 +32,12 @@ services:
     backend:
         build:
             context: .
-            dockerfile: apps/http-server.Dockerfile.prod
+            dockerfile: apps/http-server/Dockerfile.prod
         image: codeheist/rexial-http-server:latest
         container_name: rexial-http-server-prod
         restart: always
         env_file:
-            - .env
+            - .env.prod
         depends_on:
             db:
                 condition: service_healthy
@@ -51,12 +51,12 @@ services:
     ws-server:
         build:
             context: .
-            dockerfile: /apps/ws-server/Dockerfile.prod
+            dockerfile: apps/ws-server/Dockerfile.prod
         image: codeheist/rexial-ws-server:latest
         container_name: rexial-ws-server-prod
         restart: always
         env_file:
-            - .env
+            - .env.prod
         depends_on:
             db:
                 condition: service_healthy
@@ -69,11 +69,11 @@ services:
         container_name: rexial_db_prod
         restart: always
         env_file:
-            - .env
+            - .env.prod
         volumes:
             - Rexial_data:/var/lib/postgresql/data
         healthcheck:
-            test: [ "CMD-SHELL", "pg-isready -U postgres -d Rexial" ]
+            test: [ "CMD-SHELL", "pg_isready -U postgres -d Rexial" ]
             interval: 10s
             timeout: 5s
             retries: 10
