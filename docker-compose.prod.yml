@@ -51,7 +51,7 @@ services:
 
         # now run the migrations
         command: >
-            sh -c "pnpm --filter @repo/db run db:generate &&
+            sh -c "pnpm --filter @repo/db run db:generate:prod &&
                    pnpm --filter @repo/db run db:migrate &&
                    pnpm run start"
 
@@ -70,7 +70,7 @@ services:
             db:
                 condition: service_healthy
         command: >
-            sh -c "pnpm --filter @repo/db run db:generate &&
+            sh -c "pnpm --filter @repo/db run db:generate:prod &&
                    pnpm run start"
 
     db:
