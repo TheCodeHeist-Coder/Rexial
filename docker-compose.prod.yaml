@@ -1,0 +1,85 @@
+services:
+
+    nginx:
+        image: jc21/nginx-proxy-manager:latest
+        container_name: Rexial_Nginx
+        restart: always
+        ports:
+            - "80:80"
+            - "443:443"
+            - "81:81"
+
+        volumes:
+            - nginx_data:/data
+            - letsencrypt:/etc/letsencrypt
+
+        depends_on:
+            - frontend
+            - backend
+            - ws-server
+
+    frontend:
+        build:
+            context: .
+            dockerfile: apps/frontend/Dockerfile.prod
+        image: codeheist/rexial-frontend:latest
+        container_name: rexial-frontend-prod
+        restart: always
+        depends_on:
+            - backend
+            - ws-server
+
+    backend:
+        build:
+            context: .
+            dockerfile: apps/http-server.Dockerfile.prod
+        image: codeheist/rexial-http-server:latest
+        container_name: rexial-http-server-prod
+        restart: always
+        env_file:
+            - .env
+        depends_on:
+            db:
+                condition: service_healthy
+
+        # now run the migrations
+        command: >
+            sh -c "pnpm --filter @repo/db run db:generate &&
+                   pnpm --filter @repo/db run db:migrate &&
+                   pnpm run start"
+
+    ws-server:
+        build:
+            context: .
+            dockerfile: /apps/ws-server/Dockerfile.prod
+        image: codeheist/rexial-ws-server:latest
+        container_name: rexial-ws-server-prod
+        restart: always
+        env_file:
+            - .env
+        depends_on:
+            db:
+                condition: service_healthy
+        command: >
+            sh -c "pnpm --filter @repo/db run db:generate &&
+                   pnpm run start"
+
+    db:
+        image: postgres:15-alpine
+        container_name: rexial_db_prod
+        restart: always
+        env_file:
+            - .env
+        volumes:
+            - Rexial_data:/var/lib/postgresql/data
+        healthcheck:
+            test: [ "CMD-SHELL", "pg-isready -U postgres -d Rexial" ]
+            interval: 10s
+            timeout: 5s
+            retries: 10
+            start_period: 30s
+
+volumes:
+    Rexial_data:
+    nginx_data:
+    letsencrypt:
