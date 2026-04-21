@@ -66,16 +66,19 @@ pipeline{
         }
 
 
-        stage("Cleanup") {               
+        stage("Cleanup") {   
+
+            steps{        
                 sh '''
                 docker image prune -f
                 docker builder prune -f
                 '''
-            }
+             }
+           } 
         }
 
 
-    }
+    
     
     post{
         always{
@@ -88,6 +91,7 @@ pipeline{
             echo "Pipeline failed. Check logs above"
         }
     }
-    
-    
+
 }
+    
+    
