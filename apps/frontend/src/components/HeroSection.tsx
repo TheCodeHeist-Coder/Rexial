@@ -49,7 +49,7 @@ function HeroSection() {
                 </h1>
 
                 <h1 className="text-[36px] sm:text-4xl md:text-6xl lg:text-8xl text-pink-400 drop-shadow-md drop-shadow-pink-950 mt-1 sm:mt-2">
-                    Comes Alive .
+                    Comes Alive 
                 </h1>
 
                 <p className="max-w-md sm:max-w-2xl  mx-auto mt-4 sm:mt-6 text-[16px] sm:text-base md:text-lg text-gray-400 font-main tracking-wide px-2">
