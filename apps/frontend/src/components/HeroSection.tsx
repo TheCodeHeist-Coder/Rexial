@@ -53,7 +53,7 @@ function HeroSection() {
                 </h1>
 
                 <p className="max-w-md sm:max-w-2xl  mx-auto mt-4 sm:mt-6 text-[16px] sm:text-base md:text-lg text-gray-400 font-main tracking-wide px-2">
-                    Experience the next evolution of interactive learning and compete with your friends.
+                    Experience the next evolution of interactive learning and compete with your friendss.
                     Join live challenges, build your archive, and ignite your curiosity in our obsidian-themed universe.
                 </p>
             </div>
