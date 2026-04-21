@@ -64,6 +64,17 @@ pipeline{
                }
             }
         }
+
+
+        stage("Cleanup") {               
+                sh '''
+                docker image prune -f
+                docker builder prune -f
+                '''
+            }
+        }
+
+
     }
     
     post{
