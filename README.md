@@ -74,7 +74,7 @@ The platform evolves in multiple versions:
 
 ### DevOps & Deployment
 - **Docker** – Containerization  
-- **GitHub Actions** – CI/CD pipelines  
+- **Jenkins** – CI/CD pipelines  
 - **AWS** – Cloud hosting and infrastructure  
 
 ### Future DevOps Enhancements
@@ -92,7 +92,7 @@ The platform evolves in multiple versions:
   - `ai-service` (Python – GenAI, V2)
 - Real-time communication via **WebSockets**
 - Containerized using **Docker**
-- CI/CD pipelines via **GitHub Actions**
+- CI/CD pipelines via **Jenkins**
 - Hosted on **AWS**
 - Future scalability with **Kubernetes**
 
