@@ -1,6 +1,6 @@
 pipeline{
     
-    agent any;
+    agent {labels: "prod"};
     
     
      triggers {
