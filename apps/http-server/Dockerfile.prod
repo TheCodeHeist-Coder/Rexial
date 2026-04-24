@@ -16,6 +16,14 @@ RUN pnpm install --frozen-lockfile
 
 # build stage
 FROM deps AS builder
+
+ARG DATABASE_URL
+
+ENV DATABASE_URL=$DATABASE_URL   
+
+
+RUN pnpm --filter @repo/db run db:generate
+
 RUN pnpm --filter http-server build
 
 

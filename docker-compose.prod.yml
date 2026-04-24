@@ -13,6 +13,9 @@ services:
             - nginx_data:/data
             - letsencrypt:/etc/letsencrypt
 
+        networks:
+            - rexial-network
+
         depends_on:
             - frontend
             - backend
@@ -25,6 +28,8 @@ services:
         image: codeheist/rexial-frontend:latest
         container_name: rexial-frontend-prod
         restart: always
+        networks:
+            - rexial-network
         depends_on:
             - backend
             - ws-server
@@ -32,36 +37,45 @@ services:
     backend:
         build:
             context: .
-            dockerfile: apps/http-server.Dockerfile.prod
+            dockerfile: apps/http-server/Dockerfile.prod
+            args:
+                DATABASE_URL: ${DATABASE_URL}
         image: codeheist/rexial-http-server:latest
         container_name: rexial-http-server-prod
         restart: always
         env_file:
-            - .env
+            - .env.prod
+
+        networks:
+            - rexial-network
         depends_on:
             db:
                 condition: service_healthy
 
         # now run the migrations
         command: >
-            sh -c "pnpm --filter @repo/db run db:generate &&
+            sh -c "pnpm --filter @repo/db run db:generate:prod &&
                    pnpm --filter @repo/db run db:migrate &&
                    pnpm run start"
 
     ws-server:
         build:
             context: .
-            dockerfile: /apps/ws-server/Dockerfile.prod
+            dockerfile: apps/ws-server/Dockerfile.prod
+            args:
+                DATABASE_URL: ${DATABASE_URL}
         image: codeheist/rexial-ws-server:latest
         container_name: rexial-ws-server-prod
         restart: always
         env_file:
-            - .env
+            - .env.prod
+        networks:
+            - rexial-network
         depends_on:
             db:
                 condition: service_healthy
         command: >
-            sh -c "pnpm --filter @repo/db run db:generate &&
+            sh -c "pnpm --filter @repo/db run db:generate:prod &&
                    pnpm run start"
 
     db:
@@ -69,17 +83,42 @@ services:
         container_name: rexial_db_prod
         restart: always
         env_file:
-            - .env
+            - .env.prod
         volumes:
             - Rexial_data:/var/lib/postgresql/data
+        networks:
+            - rexial-network
         healthcheck:
-            test: [ "CMD-SHELL", "pg-isready -U postgres -d Rexial" ]
+            test: [ "CMD-SHELL", "pg_isready -U postgres -d Rexial" ]
             interval: 10s
             timeout: 5s
             retries: 10
             start_period: 30s
 
+    redis:
+        image: redis:7-alpine
+        container_name: rexial_redis_prod
+        restart: always
+        command: >
+            redis-server --requirepass ${REDIS_PASSWORD} --maxmemory 256mb
+            --maxmemory-policy allkeys-lru --appendonly yes
+        volumes:
+            - redis_data:/data
+        networks:
+            - rexial-network
+        healthcheck:
+            test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping" ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 10s
+
+networks:
+    rexial-network:
+        driver: bridge
+
 volumes:
     Rexial_data:
     nginx_data:
     letsencrypt:
+    redis_data:
