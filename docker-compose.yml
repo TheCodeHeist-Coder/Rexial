@@ -38,9 +38,8 @@ services:
       - .:/app
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/Qtrive
-    command:
-      sh -c " pnpm --filter @repo/db run db:generate && npx wait-on tcp:db:5432 && pnpm --filter @repo/db run db:push && pnpm run dev
-      "
+    command: sh -c " pnpm --filter @repo/db run db:generate && npx wait-on
+      tcp:db:5432 && pnpm --filter @repo/db run db:push && pnpm run dev "
     depends_on:
       db:
         condition: service_healthy
@@ -57,11 +56,26 @@ services:
     volumes:
       - Qtrive_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d Qtrive"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d Qtrive" ]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 30s
 
+  redis:
+    image: redis:7-alpine
+    container_name: Qtrive_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - Qtrive_redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
 volumes:
   Qtrive_data:
+  Qtrive_redis_data:
