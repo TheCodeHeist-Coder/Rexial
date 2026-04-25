@@ -1,4 +1,5 @@
 import { prisma } from "@repo/db";
+import { clearSessionCache } from "./cache.js";
 
 export async function endQuizSession(sessionId: string) {
     // Mark session as completed
@@ -13,4 +14,6 @@ export async function endQuizSession(sessionId: string) {
         where: { id: session.quizId },
         data: { joinCode: null, status: 'COMPLETED' }
     });
+
+    await clearSessionCache(sessionId);
 }
