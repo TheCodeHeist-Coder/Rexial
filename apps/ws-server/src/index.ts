@@ -1,9 +1,6 @@
 import WebSocket, { WebSocketServer } from 'ws';
 import { clients } from './clients/index.js';
 import { handleMessage } from './utils/handleMessages.js';
-import { prisma } from '@repo/db';
-import { broadcastToSession } from './utils/broadcastTosession.js';
-
 import { startSessionSubscriber } from './utils/broadcastTosession.js';
 import { invalidateParticipants } from './utils/cache.js';
 
