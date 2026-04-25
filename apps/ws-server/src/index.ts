@@ -4,7 +4,8 @@ import { handleMessage } from './utils/handleMessages.js';
 import { prisma } from '@repo/db';
 import { broadcastToSession } from './utils/broadcastTosession.js';
 
-
+import { startSessionSubscriber } from './utils/broadcastTosession.js';
+import { invalidateParticipants } from './utils/cache.js';
 
 
 
@@ -21,7 +22,7 @@ export interface Client {
 }
 
 
-
+startSessionSubscriber();
 
 wss.on('connection', (ws: WebSocket) => {
 
@@ -52,7 +53,12 @@ wss.on('connection', (ws: WebSocket) => {
 
     ws.on('close', async () => {
 
-        console.log('Client disconnected...');
+        console.log('Client disconnected...', client.participantId ?? 'unknown participant');
+        clients.delete(client);
+
+        if (client.sessionId && client.role === 'PARTICIPANT') {
+            await invalidateParticipants(client.sessionId);
+        }
 
     })
 })
