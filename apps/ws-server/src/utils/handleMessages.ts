@@ -13,6 +13,7 @@ import {
     invalidateLeaderboard,
     clearSessionCache,
 } from './cache.js';
+import { startQuestionTimer } from "./timeManager.js";
 
 
 
@@ -22,7 +23,7 @@ export const handleMessage = async (client: Client, data: any) => {
 
     switch (type) {
         case 'join': {
-           
+
             console.log("JOIN EVENT")
 
             const { sessionId, role, participantId, userId } = payload;
@@ -32,22 +33,22 @@ export const handleMessage = async (client: Client, data: any) => {
             client.userId = userId;
 
             if (role === 'ORGANIZER') {
-               
+
                 const session = await getCachedSession(sessionId);
                 const participants = await getCachedParticipants(sessionId);
 
-                
+
 
 
                 client.ws.send(JSON.stringify({
                     type: 'participants:sync',
                     payload: {
-                         participants,
+                        participants,
                         joinCode: session?.quiz.joinCode
-                     }
+                    }
                 }));
 
-               
+
                 console.log("JOIN CODE FROM WS:", payload);
             } else if (role === 'PARTICIPANT' && participantId) {
                 const participant = await prisma.participant.findUnique({
@@ -56,20 +57,20 @@ export const handleMessage = async (client: Client, data: any) => {
 
                 await invalidateParticipants(sessionId);
 
-                
-                  const [participants, session] = await Promise.all([
+
+                const [participants, session] = await Promise.all([
                     getCachedParticipants(sessionId),
                     getCachedSession(sessionId),
                 ]);
-            
 
-                             
-                    // this will also send the joincode for the participants
-                    broadcastToSession(sessionId, 'participants:sync', { 
-                        participants,
-                        joinCode: session?.quiz?.joinCode 
-                    });
-                  
+
+
+                // this will also send the joincode for the participants
+                broadcastToSession(sessionId, 'participants:sync', {
+                    participants,
+                    joinCode: session?.quiz?.joinCode
+                });
+
                 broadcastToSession(sessionId, 'participant:joined', { participant });
             }
             break;
@@ -111,7 +112,7 @@ export const handleMessage = async (client: Client, data: any) => {
             // without revealing answers
             const sanitizedQuestion = {
                 ...question,
-                answers: question.answers.map((ans:any) => ({
+                answers: question.answers.map((ans: any) => ({
                     id: ans.id,
                     text: ans.text
                 }))
@@ -119,43 +120,7 @@ export const handleMessage = async (client: Client, data: any) => {
 
             broadcastToSession(sessionId, 'quiz:question', { question: sanitizedQuestion })
 
-            // start timer
-            let timeleft = question.timeLimit;
-            if (sessionTimers.has(sessionId)) {
-                clearInterval(sessionTimers.get(sessionId));
-            }
-
-            broadcastToSession(sessionId, 'quiz:timer-tick', { timeLeft: timeleft });
-
-             const timer = setInterval(async () => {
-                timeleft--;
-                broadcastToSession(sessionId, 'quiz:timer-tick', { timeleft });
-
-                if (timeleft <= 0) {
-                    clearInterval(timer);
-                    sessionTimers.delete(sessionId);
-
-                    // Invalidate leaderboard so getCachedLeaderboard fetches
-                    // fresh scores that reflect all answers just submitted
-                    await invalidateLeaderboard(sessionId);
-                    const leaderboard = await getCachedLeaderboard(sessionId);
-
-                    // Reveal correct answers immediately…
-                    broadcastToSession(sessionId, 'quiz:question-results', {
-                        correctAnswers: question.answers
-                            .filter((ans: any) => ans.isCorrect)
-                            .map((ans: any) => ans.id),
-                    });
-
-                    // …then show the leaderboard 2 s later
-                    setTimeout(() => {
-                        broadcastToSession(sessionId, 'quiz:leaderboard', { leaderboard });
-                    }, 2_000);
-                }
-            }, 1_000);
-
-
-            sessionTimers.set(sessionId, timer);
+            await startQuestionTimer(sessionId, questionIndex)
             break;
         }
 
@@ -164,14 +129,14 @@ export const handleMessage = async (client: Client, data: any) => {
 
             if (!participantId) break;
 
-           const questions  = await getCachedQuestions(sessionId);
-            const question   = questions.find((q: any) => q.id === questionId);
+            const questions = await getCachedQuestions(sessionId);
+            const question = questions.find((q: any) => q.id === questionId);
             const answerMeta = question?.answers.find((a: any) => a.id === answerId);
 
-              const isCorrect = !!answerMeta?.isCorrect;
-              const points    = isCorrect ? Math.max(10, 1_000 - timeMs) : 0;
-                      
-               await Promise.all([
+            const isCorrect = !!answerMeta?.isCorrect;
+            const points = isCorrect ? Math.max(10, 1_000 - timeMs) : 0;
+
+            await Promise.all([
                 prisma.participantAnswer.create({
                     data: { participantId, questionId, answerId, timeMs, isCorrect, points },
                 }),
@@ -197,7 +162,7 @@ export const handleMessage = async (client: Client, data: any) => {
             }
 
             await endQuizSession(sessionId);
-              await clearSessionCache(sessionId);
+            await clearSessionCache(sessionId);
 
             const leaderboard = await getCachedLeaderboard(sessionId);
             broadcastToSession(sessionId, 'quiz:leaderboard', { leaderboard });
