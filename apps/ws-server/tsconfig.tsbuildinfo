@@ -1,1 +1,1 @@
-{"root":["./src/index.ts","./src/clients/index.ts","./src/utils/broadcastTosession.ts","./src/utils/endQuizSession.ts","./src/utils/handleMessages.ts","./src/utils/leaderboard.ts"],"version":"6.0.2"}
+{"root":["./src/index.ts","./src/redis.ts","./src/clients/index.ts","./src/utils/broadcastTosession.ts","./src/utils/cache.ts","./src/utils/endQuizSession.ts","./src/utils/handleMessages.ts","./src/utils/leaderboard.ts","./src/utils/timeManager.ts"],"version":"6.0.2"}

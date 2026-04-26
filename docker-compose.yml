@@ -22,9 +22,14 @@ services:
       - .:/app
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/Qtrive
+      - REDIS_HOST=redis    
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=thisistheredisPassword
     command: sh -c "pnpm --filter @repo/db run db:generate && pnpm run dev"
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   backend:
@@ -67,10 +72,11 @@ services:
     container_name: Qtrive_redis
     ports:
       - "6379:6379"
+    command: redis-server --requirepass thisistheredisPassword --bind 0.0.0.0
     volumes:
       - Qtrive_redis_data:/data
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
+      test: ["CMD", "redis-cli", "-a", "thisistheredisPassword", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
