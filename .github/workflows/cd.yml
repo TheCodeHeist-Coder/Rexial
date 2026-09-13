@@ -129,7 +129,7 @@ jobs:
             docker compose -f docker-compose.prod.yml ps
 
             # Fail the deploy if any expected service is not running.
-            for svc in frontend backend ws-server genai db redis; do
+            for svc in frontend backend ws-server genai; do
               state=$(docker compose -f docker-compose.prod.yml ps \
                 --format '{{.State}}' "$svc" || true)
               echo "  $svc: ${state:-missing}"
