@@ -50,9 +50,11 @@ services:
 
         networks:
             - rexial-network
-        depends_on:
-            db:
-                condition: service_healthy
+        # PostgreSQL and Redis run on the host, not in Docker. This maps
+        # host.docker.internal to the docker bridge gateway so .env.prod can
+        # address them; there is no db service to depend_on.
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
 
         # now run the migrations
         command: >
@@ -73,9 +75,8 @@ services:
             - .env.prod
         networks:
             - rexial-network
-        depends_on:
-            db:
-                condition: service_healthy
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
         command: >
             sh -c "pnpm --filter @repo/db run db:generate:prod &&
                    pnpm run start"
@@ -95,6 +96,8 @@ services:
             - genai_uploads:/data/uploads
         networks:
             - rexial-network
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
         healthcheck:
             test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
             interval: 15s
@@ -102,57 +105,15 @@ services:
             retries: 5
             start_period: 60s
 
-    db:
-        image: postgres:15-alpine
-        container_name: rexial_db_prod
-        restart: always
-        env_file:
-            - .env.prod
-        volumes:
-            - Rexial_data:/var/lib/postgresql/data
-        networks:
-            - rexial-network
-        healthcheck:
-            test: [ "CMD-SHELL", "pg_isready -U postgres -d Rexial" ]
-            interval: 10s
-            timeout: 5s
-            retries: 10
-            start_period: 30s
-
-    redis:
-        image: redis:7-alpine
-        container_name: rexial_redis_prod
-        restart: always
-        env_file:
-            - .env.prod 
-        command: 
-            - redis-server
-            - --requirepass
-            - ${REDIS_PASSWORD}
-            - --maxmemory
-            - 256mb
-            - --maxmemory-policy
-            - allkeys-lru
-            - --appendonly
-            - yes
-        volumes:
-            - redis_data:/data
-        networks:
-            - rexial-network
-        healthcheck:
-            test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping" ]
-            interval: 10s
-            timeout: 5s
-            retries: 5
-            start_period: 10s
+    # No db or redis services: PostgreSQL and Redis are installed on the host
+    # via apt and reached through host.docker.internal. See VPS-DEPLOYMENT.md
+    # steps 3-5 for the host config (bind the docker bridge, firewall rules).
 
 networks:
     rexial-network:
         driver: bridge
 
 volumes:
-    Rexial_data:
     genai_uploads:
     nginx_data:
     letsencrypt:
-    redis_data:
