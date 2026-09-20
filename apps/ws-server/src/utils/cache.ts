@@ -102,6 +102,44 @@ export const invalidateParticipants = async(sessionId: string) => {
 }
 
 
+/**
+ * Add one participant to the cached list, returning the updated list.
+ *
+ * Joining used to invalidate the cache and immediately rebuild it, so every
+ * join re-read the whole participant table: 300 people joining one session
+ * meant ~45,000 rows read. Appending keeps the cache warm through the join
+ * rush instead.
+ *
+ * Falls back to a normal read-through when the cache is cold or unreadable,
+ * so a Redis hiccup degrades to the old behaviour rather than losing anyone.
+ */
+export const appendCachedParticipant = async (sessionId: string, participant: any) => {
+    const key = Keys.participant(sessionId);
+
+    let cached: any[] | null = null;
+    try {
+        const raw = await cache.get(key);
+        if (raw) cached = JSON.parse(raw);
+    } catch {
+        cached = null;
+    }
+
+    if (!Array.isArray(cached)) {
+        // Cold cache: read through, which now includes this participant since
+        // the row is already committed by the time we are called.
+        return getCachedParticipants(sessionId);
+    }
+
+    // A reconnect re-joins with an id already in the list.
+    if (!cached.some((p) => p?.id === participant?.id)) {
+        cached.push(participant);
+    }
+
+    await cache.setex(key, TTL.PARTICIPANT, JSON.stringify(cached));
+    return cached;
+}
+
+
 // get cached leaderboard for a session
 export async function getCachedLeaderboard(sessionId: string) {
     return readThrough(
