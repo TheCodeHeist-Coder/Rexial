@@ -3,7 +3,7 @@ import WebSocket from "ws";
 import type { Client } from "../index.js";
 import { cache } from "../redis.js";
 import { broadcastToSession } from "./broadcastTosession.js";
-import { clients, sessionTimers } from "../clients/index.js";
+import { clients, sessionTimers, indexClient, unindexClient } from "../clients/index.js";
 import { endQuizSession } from "./endQuizSession.js";
 import { getLeaderboard } from "./leaderboard.js";
 import {
@@ -12,6 +12,7 @@ import {
     getCachedParticipants,
     getCachedLeaderboard,
     invalidateParticipants,
+    appendCachedParticipant,
     invalidateLeaderboard,
     clearSessionCache,
 } from './cache.js';
@@ -102,10 +103,15 @@ export const handleMessage = async (client: Client, data: any) => {
                 for (const existing of clients) {
                     if (existing !== client && existing.participantId === participantId) {
                         clients.delete(existing);
+                        unindexClient(existing);
                         existing.ws.terminate();
                     }
                 }
             }
+
+            // Index before overwriting sessionId: indexClient uses the old
+            // value to remove the client from a previous session's group.
+            indexClient(client, sessionId);
 
             client.sessionId = sessionId;
             client.role = role;
@@ -135,28 +141,37 @@ export const handleMessage = async (client: Client, data: any) => {
                     where: { id: participantId }
                 });
 
-                await invalidateParticipants(sessionId);
+                const session = await getCachedSession(sessionId);
 
+                // Keep the cache warm across the join rush instead of dropping
+                // and rebuilding it for every arrival.
+                const participants = await appendCachedParticipant(sessionId, participant);
 
-                const [participants, session] = await Promise.all([
-                    getCachedParticipants(sessionId),
-                    getCachedSession(sessionId),
-                ]);
-
-
-
-                // this will also send the joincode for the participants
-                broadcastToSession(sessionId, 'participants:sync', {
-                    participants,
-                    joinCode: session?.quiz?.joinCode
-                });
+                // The full list goes to the joiner alone; everyone already
+                // connected only needs the one new arrival, which the client
+                // appends. Broadcasting the whole list to everyone made this
+                // O(n^2) - at 300 per session that is ~720MB of JSON per
+                // session just to fill the lobby.
+                if (client.ws.readyState === WebSocket.OPEN) {
+                    client.ws.send(JSON.stringify({
+                        type: 'participants:sync',
+                        payload: {
+                            participants,
+                            joinCode: session?.quiz?.joinCode
+                        }
+                    }));
+                }
 
                 broadcastToSession(sessionId, 'participant:joined', { participant });
 
                 // Replay the in-flight question to this client alone. Without
                 // it a reconnect lands on a blank screen until the organizer
                 // advances, so a brief network blip costs the whole question.
-                await sendQuizStateSnapshot(client, sessionId);
+                // Only a live quiz has anything to replay, so a first join
+                // into the lobby skips the extra queries entirely.
+                if (session?.status === 'IN_PROGRESS') {
+                    await sendQuizStateSnapshot(client, sessionId);
+                }
             }
             break;
         }
@@ -214,15 +229,10 @@ export const handleMessage = async (client: Client, data: any) => {
 
             if (!participantId) break;
 
-            // Reject a second submission for the same question. A reconnect
-            // replays the live question, so without this a participant who
-            // rejoins after answering could answer again and score twice.
-            const alreadyAnswered = await prisma.participantAnswer.findFirst({
-                where: { participantId, questionId },
-                select: { id: true },
-            });
-            if (alreadyAnswered) break;
-
+            // No pre-check for a duplicate submission: the unique constraint
+            // on (participantId, questionId) rejects one with P2002, which is
+            // handled below. Asking the database first would add a round-trip
+            // to every answer and still not settle a race.
             const questions = await getCachedQuestions(sessionId);
             const question = questions.find((q: any) => q.id === questionId);
             const answerMeta = question?.answers.find((a: any) => a.id === answerId);

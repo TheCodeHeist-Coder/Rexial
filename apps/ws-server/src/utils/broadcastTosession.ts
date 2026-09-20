@@ -1,5 +1,5 @@
 import WebSocket from "ws";
-import { clients } from "../clients/index.js";
+import { clientsInSession } from "../clients/index.js";
 import { pub, sub, sessionChannel } from "../redis.js";
 import {randomUUID} from 'crypto';
 
@@ -10,9 +10,14 @@ const SERVER_ID = randomUUID();
 export function broadcastToSession(sessionId: string, type: string, payload: any = {}) {
   const envelope = JSON.stringify({ type, payload, _sid: SERVER_ID });
 
-  for(const client of clients) {
-    if(client.sessionId === sessionId && client.ws.readyState === WebSocket.OPEN) {
-      client.ws.send(JSON.stringify({ type, payload }));
+  // Serialise once for the whole session rather than per recipient: the
+  // timer ticks once a second per live quiz, so this runs on every tick for
+  // every participant.
+  const outbound = JSON.stringify({ type, payload });
+
+  for (const client of clientsInSession(sessionId)) {
+    if (client.ws.readyState === WebSocket.OPEN) {
+      client.ws.send(outbound);
     }
   }
 
@@ -36,11 +41,8 @@ export function startSessionSubscriber() {
         const sessionId = channel.replace('session:', '');
         const outbound = JSON.stringify(message);
 
-        for (const client of clients) {
-            if (
-                client.sessionId === sessionId &&
-                client.ws.readyState === WebSocket.OPEN
-            ) {
+        for (const client of clientsInSession(sessionId)) {
+            if (client.ws.readyState === WebSocket.OPEN) {
                 client.ws.send(outbound);
             }
         }

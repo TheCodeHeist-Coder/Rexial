@@ -2,7 +2,7 @@ import { configDotenv } from 'dotenv';
 configDotenv();
 import WebSocket, { WebSocketServer } from 'ws';
 
-import { clients } from './clients/index.js';
+import { clients, unindexClient } from './clients/index.js';
 import { handleMessage } from './utils/handleMessages.js';
 import { startSessionSubscriber } from './utils/broadcastTosession.js';
 import { invalidateParticipants } from './utils/cache.js';
@@ -84,6 +84,7 @@ wss.on('connection', (ws: WebSocket) => {
 
         console.log('Client disconnected...', client.participantId ?? 'unknown participant');
         clients.delete(client);
+        unindexClient(client);
 
         if (client.sessionId && client.role === 'PARTICIPANT') {
             await invalidateParticipants(client.sessionId);
