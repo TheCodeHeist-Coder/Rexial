@@ -20,7 +20,28 @@ export interface Client {
     role: 'ORGANIZER' | 'PARTICIPANT';
     participantId?: string;
     userId?: string;
+    isAlive: boolean;
 }
+
+// A dropped connection (NAT timeout, closed laptop, proxy cutting an idle
+// socket) often never fires 'close', so the client would linger in `clients`
+// forever and keep inflating participant counts. Ping every 30s and drop
+// anything that has not ponged since the previous round.
+const HEARTBEAT_INTERVAL_MS = 30_000;
+
+const heartbeat = setInterval(() => {
+    for (const client of clients) {
+        if (!client.isAlive) {
+            client.ws.terminate();   // fires 'close' -> normal cleanup path
+            continue;
+        }
+
+        client.isAlive = false;
+        client.ws.ping();
+    }
+}, HEARTBEAT_INTERVAL_MS);
+
+wss.on('close', () => clearInterval(heartbeat));
 
 
 startSessionSubscriber();
@@ -31,9 +52,16 @@ wss.on('connection', (ws: WebSocket) => {
     const client: Client = {
         ws,
         sessionId: '',
-        role: 'PARTICIPANT'
+        role: 'PARTICIPANT',
+        isAlive: true
     };
     clients.add(client);
+
+    // Browsers answer a protocol-level ping automatically, so this needs no
+    // client-side support.
+    ws.on('pong', () => {
+        client.isAlive = true;
+    });
 
 
     ws.on('message', async (message) => {

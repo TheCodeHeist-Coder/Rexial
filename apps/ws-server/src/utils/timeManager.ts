@@ -10,6 +10,13 @@ import { sessionTimers } from '../clients/index.js';
 const timerLockKey = (sessionId: string, questionIndex: number) =>
     `quiz:timer-lock:${sessionId}:${questionIndex}`;
 
+// Absolute epoch-ms deadline for the question currently in flight. The
+// countdown itself lives in a setInterval closure on one instance, which a
+// reconnecting client cannot read — this key is what lets any instance answer
+// "how much time is left?" during a mid-question rejoin.
+export const timerDeadlineKey = (sessionId: string) =>
+    `quiz:deadline:${sessionId}`;
+
 export async function startQuestionTimer(
     sessionId: string,
     questionIndex: number,
@@ -43,6 +50,14 @@ export async function startQuestionTimer(
     }
 
     let timeLeft = question.timeLimit;
+
+    // Published so a mid-question rejoin can compute the real remaining time.
+    await cache.set(
+        timerDeadlineKey(sessionId),
+        String(Date.now() + question.timeLimit * 1_000),
+        'EX', question.timeLimit + 10,
+    );
+
     broadcastToSession(sessionId, 'quiz:timer-tick', { timeLeft });
 
     const timer = setInterval(async () => {
@@ -53,8 +68,10 @@ export async function startQuestionTimer(
             clearInterval(timer);
             sessionTimers.delete(sessionId);
 
-            // Release the lock immediately so a new question can start
-            await cache.del(lockKey);
+            // Release the lock immediately so a new question can start.
+            // The deadline goes with it: the question is over, so a rejoin
+            // from here on should see results, not a live countdown.
+            await cache.del(lockKey, timerDeadlineKey(sessionId));
 
             await invalidateLeaderboard(sessionId);
             const leaderboard = await getCachedLeaderboard(sessionId);

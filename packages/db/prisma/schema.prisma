@@ -146,4 +146,9 @@ model ParticipantAnswer {
 
   answerId String?
   answer   Answer? @relation(fields: [answerId], references: [id])
+
+  // One answer per participant per question. A reconnect replays the live
+  // question, so this is what makes double-scoring impossible even if two
+  // submissions race past the application-level check.
+  @@unique([participantId, questionId])
 }

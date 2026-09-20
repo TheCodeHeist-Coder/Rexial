@@ -38,26 +38,37 @@ export const joinQuizController = async (req: Request, res: Response) => {
         }
 
 
-        // find and create a session
-        let session = quiz.quizSessions[0];
+        // Session lookup/creation and the participant insert go together: on
+        // their own, a failed participant insert would leave an empty session
+        // behind for the quiz.
+        const { session, participant } = await prisma.$transaction(async (tx) => {
+            // Re-read inside the transaction rather than trusting the earlier
+            // read: at 500 simultaneous joins many requests see no session at
+            // once, and each would otherwise create its own.
+            let session = quiz.quizSessions[0]
+                ?? await tx.quizSession.findFirst({
+                    where: { quizId: quiz.id, status: { in: ['WAITING', 'IN_PROGRESS'] } },
+                });
 
-        if (!session) {
-            session = await prisma.quizSession.create({
+            if (!session) {
+                session = await tx.quizSession.create({
+                    data: {
+                        quizId: quiz.id,
+                        status: 'WAITING'
+                    }
+                });
+            }
+
+            // create participnats
+            const participant = await tx.participant.create({
                 data: {
-                    quizId: quiz.id,
-                    status: 'WAITING'
+                    username,
+                    sessionId: session.id,
+                    userId: req.userId || null
                 }
             });
-        }
 
-
-        // create participnats
-        const participant = await prisma.participant.create({
-            data: {
-                username,
-                sessionId: session.id,
-                userId: req.userId || null
-            }
+            return { session, participant };
         });
 
         return res.status(200).json({

@@ -38,6 +38,8 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
   const username = location.state?.username;
 
   const [ws, setWs] = useState<WebSocket | null>(null);
+  const [connectionState, setConnectionState] =
+    useState<'connected' | 'reconnecting' | 'failed'>('connected');
   const [gameState, setGameState] = useState<GameState>('WAITING');
   const [participants, setParticipants] = useState<any[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState<any>(null);
@@ -71,9 +73,36 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
 
     let socket: WebSocket | null = null;
     let isMounted = true;
-
+    let reconnectAttempts = 0;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    // Set when we close a socket ourselves (unmount, or replacing a stale
+    // one) so onclose knows not to treat it as a dropped connection.
+    let deliberateClose = false;
 
     const wsHost = import.meta.env.VITE_WS_URL || 'ws://localhost:8080/';
+
+    // Exponential backoff with jitter: 1s, 2s, 4s, 8s, capped at 10s. The
+    // jitter matters at 500 users - without it, a server restart makes every
+    // client reconnect in the same instant and knock it over again.
+    const MAX_RECONNECT_ATTEMPTS = 8;
+    const reconnectDelay = () => {
+      const base = Math.min(1000 * 2 ** reconnectAttempts, 10_000);
+      return base + Math.random() * 500;
+    };
+
+    const scheduleReconnect = () => {
+      if (!isMounted || deliberateClose) return;
+
+      if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+        setConnectionState('failed');
+        return;
+      }
+
+      setConnectionState('reconnecting');
+      const delay = reconnectDelay();
+      reconnectAttempts++;
+      reconnectTimer = setTimeout(initWebSocket, delay);
+    };
 
 
 
@@ -83,6 +112,9 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
       socket = new WebSocket(wsHost);
 
       socket.onopen = () => {
+
+        reconnectAttempts = 0;
+        setConnectionState('connected');
 
         if (!sessionId) {
           console.log("Session is not initiated. Try again...")
@@ -131,6 +163,23 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
             setQuestionStartTime(Date.now());
 
             break;
+          // Sent only to a reconnecting client, to put them back on the
+          // question already in flight instead of a blank screen.
+          case 'quiz:state-snapshot':
+            setCurrentQuestion(payload.question);
+            setCorrectAnswers([]);
+            setTimeLeft(payload.timeLeft);
+            // Restoring their pick (or blocking a fresh one when the window
+            // has closed) is what stops a rejoin scoring the same question
+            // twice; the server rejects it either way.
+            setSelectedAnswer(
+              payload.alreadyAnswered ? (payload.selectedAnswerId ?? '__answered__') : null
+            );
+            // Scoring uses Date.now() - questionStartTime, so anchor it to
+            // the real remaining time rather than the moment they rejoined.
+            setQuestionStartTime(Date.now() - (payload.question.timeLimit - payload.timeLeft) * 1000);
+            setGameState(payload.expired ? GameState.RESULTS : GameState.QUESTION);
+            break;
           case 'quiz:timer-tick':
             setTimeLeft(payload.timeLeft);
             break;
@@ -150,8 +199,15 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
 
 
 
+      // onerror is always followed by onclose, so reconnect is scheduled
+      // there rather than in both places.
       socket.onerror = () => {
         socket?.close();
+      };
+
+      socket.onclose = () => {
+        if (!isMounted || deliberateClose) return;
+        scheduleReconnect();
       };
 
       setWs(socket);
@@ -163,8 +219,13 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
 
     return () => {
       isMounted = false;
+      deliberateClose = true;
       clearTimeout(timeoutId);
+      if (reconnectTimer) clearTimeout(reconnectTimer);
       if (socket) {
+        // Drop the handler first: closing a socket fires onclose, which would
+        // otherwise schedule a reconnect for a screen that is going away.
+        socket.onclose = null;
         if (socket.readyState === 0) {
           socket.onopen = () => socket?.close();
         } else {
@@ -212,10 +273,43 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
   }
 
 
+  // Rendered above every game state, so a participant always knows the live
+  // connection dropped rather than silently missing questions.
+  const ConnectionBanner = () => {
+    if (connectionState === 'connected') return null;
+
+    const failed = connectionState === 'failed';
+
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        className={`fixed top-0 inset-x-0 z-100 px-4 py-2 text-center text-sm font-medium
+          ${failed ? 'bg-red-600 text-white' : 'bg-amber-500 text-black'}`}
+      >
+        {failed ? (
+          <span>
+            Connection lost.{' '}
+            <button
+              onClick={() => window.location.reload()}
+              className="underline font-semibold"
+            >
+              Reload to rejoin
+            </button>
+          </span>
+        ) : (
+          'Reconnecting…'
+        )}
+      </div>
+    );
+  };
+
+
   if (gameState === GameState.WAITING) {
 
     return (
       <div className="min-h-screen w-full  bg-[#000000]/98 opacity-99">
+        <ConnectionBanner />
         <div className="w-full   bg-linear-to-tl from-transparent via-pink-600/10 to-transparent">
 
           <div className="min-h-screen flex flex-col items-center justify-center bg-surface relative overflow-hidden p-6">
@@ -298,6 +392,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
   if (gameState === GameState.STARTING) {
     return (
       <div className="bg-[#000000]/98 opacity-99 w-full min-h-screen">
+        <ConnectionBanner />
 
         <div className="w-full   bg-linear-to-tl from-transparent via-pink-600/10 to-transparent">
 
@@ -325,6 +420,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
     return (
 
       <div className="w-full min-h-screen  bg-[#000000]/99 opacity-98">
+        <ConnectionBanner />
 
         <div className="w-full min-h-screen z-50  bg-linear-to-tl from-transparent via-pink-600/10 to-transparent">
 
@@ -432,6 +528,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
     return (
 
       <div className=" bg-[#000000]/98 opacity-99 min-h-screen">
+        <ConnectionBanner />
 
         <div className="w-full min-h-screen z-50  bg-linear-to-tl from-transparent via-pink-600/10 to-transparent">
 
@@ -492,6 +589,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
     return (
 
       <div className="w-full min-h-screen  bg-[#000000]/98 opacity-99">
+        <ConnectionBanner />
 
         <div className="w-full min-h-screen z-50  bg-linear-to-tl from-transparent via-pink-600/10 to-transparent">
 
