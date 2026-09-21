@@ -1,0 +1,90 @@
+name: Bug report
+description: Something in Rexial is not working the way it should
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this. The more precisely you can
+        describe what happened, the faster it can be fixed.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the bug, and what you expected instead.
+      placeholder: |
+        When a participant joins with a code that has expired, the screen stays
+        blank instead of showing an error.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps someone else can follow to see the same thing.
+      placeholder: |
+        1. Host creates a quiz and generates a join code
+        2. Wait for the code to expire
+        3. Open the join page and enter that code
+        4. Screen goes blank, nothing in the UI explains why
+    validations:
+      required: true
+
+  - type: dropdown
+    id: service
+    attributes:
+      label: Which part of Rexial?
+      description: Select all that seem involved. Unsure is a fine answer.
+      multiple: true
+      options:
+        - frontend (React)
+        - http-server (Express REST API)
+        - ws-server (WebSockets)
+        - genAI (Python / FastAPI)
+        - database (Prisma / PostgreSQL)
+        - Docker / deployment
+        - CI / GitHub Actions
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: how-running
+    attributes:
+      label: How are you running Rexial?
+      options:
+        - Docker Compose (docker-compose up)
+        - Locally with pnpm dev
+        - Deployed instance
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or error output
+      description: >
+        Browser console, terminal output, or container logs. This is
+        automatically formatted as code, so no backticks needed.
+      render: shell
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Node version, browser — whatever is relevant.
+      placeholder: "Ubuntu 24.04, Node 20.11, Chrome 130"
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and this has not been reported
+          required: true
+        - label: I am not including any secrets, API keys or passwords in this report
+          required: true

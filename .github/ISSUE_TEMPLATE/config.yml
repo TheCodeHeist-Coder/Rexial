@@ -1,0 +1,14 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Looking for something to work on?
+    url: https://github.com/TheCodeHeist-Coder/Rexial/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22
+    about: Browse good first issues — each one names the files it touches.
+  - name: Setup not working?
+    url: https://github.com/TheCodeHeist-Coder/Rexial/blob/main/setup.md
+    about: The setup guide covers Docker and non-Docker installs, including the Python AI service.
+  - name: How does Rexial work internally?
+    url: https://github.com/TheCodeHeist-Coder/Rexial/blob/main/ARCHITECTURE.md
+    about: Service boundaries, data model, request flows and design decisions.
+  - name: Reporting a security vulnerability
+    url: https://github.com/TheCodeHeist-Coder/Rexial/security/advisories/new
+    about: Please report security issues privately, not as a public issue.

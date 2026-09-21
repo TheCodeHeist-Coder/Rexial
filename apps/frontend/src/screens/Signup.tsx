@@ -62,7 +62,7 @@ function Signup() {
         </h1>
 
         <p className="font-main text-sm sm:text-base lg:text-lg text-gray-400 tracking-wide max-w-md mt-6">
-          Join the arena of knowledge. Join <span>Qtrive</span> and transform the way you learn through interactive archives.
+          Join the arena of knowledge. Join <span>Rexial</span> and transform the way you learn through interactive archives.
         </p>
       </div>
 

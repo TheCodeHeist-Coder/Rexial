@@ -22,7 +22,7 @@ function Navbar() {
                     {/* Github */}
                     <a
                         className="flex items-center gap-1 sm:gap-2 text-gray-300 hover:text-white text-xs sm:text-sm md:text-md"
-                        href="https://github.com/TheCodeHeist-Coder/Qtrive"
+                        href="https://github.com/TheCodeHeist-Coder/Rexial"
                         target="_blank"
                         rel="noreferrer"
                     >

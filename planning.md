@@ -116,6 +116,6 @@ AI work stays out of the Node servers and can scale on its own.
 
 
  ## Schema planning...
- #### Here is the basic version of schema of Qtrive
+ #### Here is the basic version of schema of Rexial
 
 ![alt text](<Screenshot From 2026-03-27 10-31-57.png>)

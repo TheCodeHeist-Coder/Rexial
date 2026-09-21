@@ -29,8 +29,8 @@
 
 #### (1) Now, fork & clone the repository
 ```bash
-git clone https://github.com/TheCodeHeist-Coder/Qtrive.git
-cd Qtrive
+git clone https://github.com/TheCodeHeist-Coder/Rexial.git
+cd Rexial
 ```
 
 #### (2) Install pnpm globally if not installed
