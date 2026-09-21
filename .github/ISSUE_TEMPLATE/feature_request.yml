@@ -1,0 +1,76 @@
+name: Feature request
+description: Suggest something Rexial should be able to do
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before opening this, it is worth checking [ROADMAP.md](https://github.com/TheCodeHeist-Coder/Rexial/blob/main/ROADMAP.md)
+        in case the idea is already planned.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: >
+        Describe the situation where today's Rexial falls short. Start from the
+        problem rather than the solution — it often leads somewhere better.
+      placeholder: |
+        A host running a long quiz cannot pause it. If something goes wrong in
+        the room, the timer keeps running and participants lose points.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: What would you like to see?
+      description: Your proposed solution, as concretely as you can describe it.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part of Rexial would this touch?
+      multiple: true
+      options:
+        - frontend (React)
+        - http-server (Express REST API)
+        - ws-server (WebSockets)
+        - genAI (Python / FastAPI)
+        - database (Prisma / PostgreSQL)
+        - Docker / deployment
+        - Documentation
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+      description: Other approaches, or how you work around this today.
+
+  - type: dropdown
+    id: contributing
+    attributes:
+      label: Would you like to build this?
+      description: >
+        Entirely optional — a good idea is valuable whether or not you
+        implement it. Saying yes just means we will scope it with you first.
+      options:
+        - "Yes, I would like to work on it"
+        - "Yes, but I would need guidance"
+        - "No, just suggesting the idea"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and the roadmap for this idea
+          required: true

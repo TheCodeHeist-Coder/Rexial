@@ -15,14 +15,14 @@ Welcome! This guide will help you make your first contribution to the project.
 ## 2. Clone Your Fork
 
 ```bash
-git clone https://github.com/<your-username>/<repo-name>.git
-cd <repo-name>
+git clone https://github.com/<your-username>/Rexial.git
+cd Rexial
 ```
 
 ## 3. Add Upstream Remote
 *This lets you sync with the original repository:-
 ```bash
-git remote add upstream https://github.com/<original-owner>/<repo-name>.git
+git remote add upstream https://github.com/TheCodeHeist-Coder/Rexial.git
 git remote -v
 ```
 

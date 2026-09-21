@@ -40,3 +40,6 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+
+# Local scratch: issue bodies to paste into GitHub
+ISSUES-TO-CREATE.local.md

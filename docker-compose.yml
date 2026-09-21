@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: apps/frontend/Dockerfile
-    container_name: QtriveFrontend
+    container_name: RexialFrontend
     ports:
       - "5173:5173"
     volumes:
@@ -16,7 +16,7 @@ services:
     build:
       context: .
       dockerfile: apps/ws-server/Dockerfile
-    container_name: QtriveWsServer
+    container_name: RexialWsServer
     ports:
       - "8080:8080"
     volumes:
@@ -37,7 +37,7 @@ services:
     build:
       context: .
       dockerfile: apps/http-server/Dockerfile
-    container_name: QtriveBackend
+    container_name: RexialBackend
     ports:
       - "4000:4000"
     volumes:
@@ -54,7 +54,7 @@ services:
     build:
       context: .
       dockerfile: apps/genAI/Dockerfile
-    container_name: QtriveGenAI
+    container_name: RexialGenAI
     ports:
       - "8000:8000"
     volumes:
@@ -75,7 +75,7 @@ services:
 
   db:
     image: postgres:15-alpine
-    container_name: Qtrive_db
+    container_name: Rexial_db
     ports:
       - "5432:5432"
     environment:
@@ -93,7 +93,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: Qtrive_redis
+    container_name: Rexial_redis
     ports:
       - "6379:6379"
     command: redis-server --requirepass thisistheredisPassword --bind 0.0.0.0
