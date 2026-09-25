@@ -56,11 +56,15 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
   const [qIndex, setQIndex] = useState(0);
 
 
-  const topThree = leaderboard.slice(0, 3);
+  const sortedLeaderboard = [...leaderboard].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
 
-  const three = [topThree[1], topThree[0], topThree[2]];
+  const podium = [
+    { rank: 1, player: sortedLeaderboard[0] },
+    { rank: 2, player: sortedLeaderboard[1] },
+    { rank: 3, player: sortedLeaderboard[2] },
+  ].filter((entry): entry is { rank: number; player: any } => Boolean(entry.player));
 
-  const others = leaderboard.slice(3);
+  const others = sortedLeaderboard.slice(3);
 
 
   // if participant is missing, kick them out
@@ -607,15 +611,14 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
             <div className="w-full max-w-4xl mx-auto space-y-6">
 
               {/* top three performers */}
-              <div className="   sm:flex  justify-center items-center gap-3  sm:gap-12">
-                {three.map((player, idx) => {
-                  const isFirst = idx === 1;
-                  const rank = isFirst ? 1 : idx === 0 ? 2 : 3;
+              <div className="sm:flex justify-center items-center gap-3 sm:gap-12">
+                {podium.map(({ rank, player }) => {
+                  const isFirst = rank === 1;
 
                   return (
                     <div
                       key={player.id}
-                      className={`flex flex-col gap-2  mb-8 items-center p-5 rounded-2xl w-40
+                      className={`flex flex-col gap-2 mb-8 items-center p-5 rounded-2xl w-40
         ${isFirst
                           ? 'bg-yellow-500/20 w-60 border border-yellow-500/30 text-yellow-500 scale-110'
                           : 'bg-surface border border-white/5'}
@@ -623,7 +626,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
         ${rank === 3 ? 'mt-10 w-55 bg-[#4A3004]/50 text-amber-600 border-2 border-amber-400' : ''}
         `}
                     >
-                      <span className="text-3xl font-black font-secondary"> Rank: <span className="font-special font-light"> {rank}  </span> </span>
+                      <span className="text-3xl font-black font-secondary"> Rank: <span className="font-special font-light"> {rank} </span> </span>
 
                       <div className={`w-16 h-16 rounded-xl bg-linear-to-br ${getAvatarColor(player.id)} p-0.5 shadow overflow-hidden`}>
                         <img
@@ -637,7 +640,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
                         {player.username}
                       </span>
 
-                      <span className=" text-2xl font-special tracking-wide">
+                      <span className="text-2xl font-special tracking-wide">
                         {player.score} pts
                       </span>
                     </div>
