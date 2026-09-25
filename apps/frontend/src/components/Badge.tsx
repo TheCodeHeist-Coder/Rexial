@@ -16,7 +16,7 @@ function Badge() {
     {/* Left */}
     <p className="group-hover:text-gray-400 transition duration-200 flex items-center gap-2 text-md sm:text-sm md:text-base text-gray-100 font-secondary tracking-wide">
       <GiCelebrationFire className="h-4 w-4 sm:h-5 sm:w-5 text-rose-500 animate-pulse" />
-      Version-v1
+      Version-v2
     </p>
 
     {/* Divider */}
@@ -24,7 +24,7 @@ function Badge() {
 
     {/* Right */}
     <p className="group-hover:text-indigo-600 transition duration-200 text-indigo-400 flex items-center gap-2 font-secondary text-md sm:text-sm md:text-base tracking-wide">
-      v2 - In Progress
+      v3 - In Progress
       <RiProgress6Line className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-500 animate-pulse" />
     </p>
 
