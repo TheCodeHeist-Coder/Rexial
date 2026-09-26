@@ -681,8 +681,12 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
 
             </div>
 
-            <Link to={isOrganizer ? "/dashboard" : "/"} className="mt-16 px-8 py-3 text-black font-bold font-secondary tracking-wide rounded-full bg-linear-to-b from-pink-500 to-pink-800/40 hover:to-pink-800/30 transition duration-200 shadow-sm active:shadow-none active:scale-95 shadow-pink-700">
-              {isOrganizer ? "Back to Dashboard" : "Play Again"}
+            <Link
+              to={isOrganizer ? "/dashboard" : "/join"}
+              state={isOrganizer ? undefined : { username }}
+              className="mt-16 px-8 py-3 text-black font-bold font-secondary tracking-wide rounded-full bg-linear-to-b from-pink-500 to-pink-800/40 hover:to-pink-800/30 transition duration-200 shadow-sm active:shadow-none active:scale-95 shadow-pink-700"
+            >
+              {isOrganizer ? "Back to Dashboard" : "Join Another Quiz"}
             </Link>
           </div>
         </div>
