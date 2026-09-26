@@ -52,7 +52,6 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
 
 
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
-  const [questionStartTime, setQuestionStartTime] = useState<number>(0);
   const [qIndex, setQIndex] = useState(0);
 
 
@@ -164,7 +163,6 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
             setSelectedAnswer(null);
             setCorrectAnswers([]);
             setGameState(GameState.QUESTION);
-            setQuestionStartTime(Date.now());
 
             break;
           // Sent only to a reconnecting client, to put them back on the
@@ -179,9 +177,6 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
             setSelectedAnswer(
               payload.alreadyAnswered ? (payload.selectedAnswerId ?? '__answered__') : null
             );
-            // Scoring uses Date.now() - questionStartTime, so anchor it to
-            // the real remaining time rather than the moment they rejoined.
-            setQuestionStartTime(Date.now() - (payload.question.timeLimit - payload.timeLeft) * 1000);
             setGameState(payload.expired ? GameState.RESULTS : GameState.QUESTION);
             break;
           case 'quiz:timer-tick':
@@ -262,7 +257,6 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
     if (selectedAnswer || gameState !== GameState.QUESTION) return;
 
     setSelectedAnswer(answerId);
-    const timeMs = Date.now() - questionStartTime;
 
     ws?.send(JSON.stringify({
       type: 'quiz:submit-answer',
@@ -270,8 +264,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
         sessionId,
         participantId,
         questionId: currentQuestion.id,
-        answerId,
-        timeMs
+        answerId
       }
     }))
   }
