@@ -8,37 +8,68 @@ import { RiLoader2Fill } from 'react-icons/ri';
 import BgBoss from '../components/BgBoss';
 
 
+const normalizeJoinCode = (value: string) =>
+    value.replace(/[^a-z0-9]/gi, '').toUpperCase().slice(0, 6);
+
+type JoinRequestError = {
+    response?: {
+        data?: {
+            error?: string;
+        };
+    };
+};
 
 
 function JoinQuiz() {
     const location = useLocation();
     const navigate = useNavigate();
 
-    const [code, setCode] = useState(location.state?.code || '');
+    const [code, setCode] = useState(() => normalizeJoinCode(location.state?.code || ''));
     const [username, setUsername] = useState(location.state?.username || '');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
     const handleJoin = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!code || !username) return;
 
+        const normalizedCode = normalizeJoinCode(code);
+        const normalizedUsername = username.trim();
+
+        if (!normalizedCode) {
+            setError('Game PIN is required');
+            return;
+        }
+
+        if (!normalizedUsername) {
+            setError('Nickname cannot be empty');
+            return;
+        }
+
+        setCode(normalizedCode);
+        setUsername(normalizedUsername);
         setError('');
         setLoading(true);
 
         try {
-            const { data } = await api.post('/session/join', { code, username });
-
+            const { data } = await api.post('/session/join', {
+                code: normalizedCode,
+                username: normalizedUsername
+            });
 
             localStorage.setItem("participantId", data.participantId);
-            localStorage.setItem("username", username);
+            localStorage.setItem("username", normalizedUsername);
 
             // Redirect to play arena with session/participant data
             navigate(`/quiz/play/${data.sessionId}`, {
-                state: { participantId: data.participantId, username, quizTitle: data.quizTitle }
+                state: {
+                    participantId: data.participantId,
+                    username: normalizedUsername,
+                    quizTitle: data.quizTitle
+                }
             });
-        } catch (err: any) {
-            setError(err.response?.data?.error || 'Failed to join quiz');
+        } catch (err: unknown) {
+            const joinError = err as JoinRequestError;
+            setError(joinError.response?.data?.error || 'Failed to join quiz');
             setLoading(false);
         }
     };
@@ -71,10 +102,10 @@ function JoinQuiz() {
                         <input
                             type="text"
                             value={code}
-                            onChange={e => setCode(e.target.value.toUpperCase())}
+                            onChange={e => setCode(normalizeJoinCode(e.target.value))}
                             className="input-field border-2 border-pink-500/60 py-2 px-4 rounded-xl text-center text outline-none text-xl tracking-widest font-mono uppercase font-bold text-white placeholder:text-zinc-600"
                             placeholder="e.g. XY3F12"
-                            maxLength={6}
+
                             required
                         />
                     </div>
