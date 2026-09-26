@@ -6,7 +6,10 @@ import { useEffect, useState } from "react"
 import { BiPlay, BiPlus, BiSave } from "react-icons/bi"
 import { LuUserSearch } from "react-icons/lu"
 import AiQuizGenerator from "../components/AiQuizGenerator"
-import type { GeneratedQuestion } from "../services/genaiApi"
+import type { Difficulty, GeneratedQuestion } from "../services/genaiApi"
+import { DIFFICULTY_STYLES } from "../components/ai/difficulty"
+
+const DIFFICULTIES: Difficulty[] = ['Low', 'Medium', 'High'];
 
 
 function QuizBuilder() {
@@ -25,6 +28,7 @@ function QuizBuilder() {
   const [showAiGen, setShowAiGen] = useState(false);
   const [qText, setQText] = useState('');
   const [qTime, setQTime] = useState('15');
+  const [qDifficulty, setQDifficulty] = useState<Difficulty>('Medium');
   const [answers, setAnswers] = useState([{ text: '', isCorrect: true }, { text: '', isCorrect: false }, { text: '', isCorrect: false }, { text: '', isCorrect: false }]);
 
   const [inviteEmail, setInviteEmail] = useState('');
@@ -112,6 +116,7 @@ function QuizBuilder() {
     await api.post(`/quizzes/${id}/questions`, {
       text: q.text,
       timeLimit,
+      difficulty: q.difficulty,
       answers: q.options.map(o => ({ text: o.text, isCorrect: o.isCorrect }))
     });
   };
@@ -125,11 +130,13 @@ function QuizBuilder() {
       await api.post(`/quizzes/${id}/questions`, {
         text: qText,
         timeLimit: parseInt(qTime) || 15,
+        difficulty: qDifficulty,
         answers
       });
       setShowAddQ(false);
       setQText('');
       setQTime('15');
+      setQDifficulty('Medium');
       setAnswers([{ text: '', isCorrect: true }, { text: '', isCorrect: false }, { text: '', isCorrect: false }, { text: '', isCorrect: false }]);
       fetchQuiz();
     } catch (err) {
@@ -201,13 +208,15 @@ function QuizBuilder() {
             </div>
           </div>
 
-          {showAiGen && (
+          {/* kept mounted while hidden so closing it does not lose drafts */}
+          <div hidden={!showAiGen}>
             <AiQuizGenerator
+              existingQuestions={quiz?.questions?.map((q: { text: string }) => q.text) ?? []}
               onSave={handleSaveAiQuestion}
               onSaved={fetchQuiz}
               onClose={() => setShowAiGen(false)}
             />
-          )}
+          </div>
 
           {showAddQ && (
             <div className="glass-card py-8 px-12 mt-12 bg-zinc-900/40 border border-gray-800/50 rounded-2xl">
@@ -225,6 +234,21 @@ function QuizBuilder() {
                     onChange={e => setQTime(e.target.value)} />
                   <span className="text-xs text-green-500 tracking-widest font-bold block text-center mt-1">Seconds</span>
                 </div>
+              </div>
+
+              <div className="flex items-center gap-2" role="group" aria-label="Difficulty">
+                <span className="text-xs text-zinc-500 font-secondary tracking-widest font-bold mr-2">DIFFICULTY</span>
+                {DIFFICULTIES.map(d => (
+                  <button
+                    key={d}
+                    type="button"
+                    aria-pressed={qDifficulty === d}
+                    onClick={() => setQDifficulty(d)}
+                    className={`text-xs px-3 py-1 rounded border font-medium cursor-pointer ${qDifficulty === d ? DIFFICULTY_STYLES[d] : 'border-gray-700/50 text-zinc-500 hover:text-zinc-300'}`}
+                  >
+                    {d}
+                  </button>
+                ))}
               </div>
 
               <div className="grid sm:grid-cols-2 gap-6 mt-6">
@@ -261,6 +285,9 @@ function QuizBuilder() {
                   <h3 className=" text-lg font-secondary text-gray-300 tracking-wider font-semibold">
                     <span className="text-pink-500 mr-2 font-special">{idx + 1}.</span> {q.text}</h3>
                   <div className="flex items-center gap-3">
+                    {q.difficulty && (
+                      <span className={`text-xs px-2 py-1 rounded border font-medium ${DIFFICULTY_STYLES[q.difficulty as Difficulty] ?? DIFFICULTY_STYLES.Medium}`}>{q.difficulty}</span>
+                    )}
                     <span className="bg-green-600/10  border border-white/10 px-4 py-1 font-semibold tracking-wide rounded text-xs text-zinc-400">{q.timeLimit}s</span>
                     <button className="text-red-400 font-semibold font-main tracking-wider rounded-md border border-rose-700/20 cursor-pointer bg-rose-600/20 hover:bg-rose-600/30 active:scale-95 hover:text-red-400 transition-colors py-1 px-4 flex items-center gap-1"><BsTrash2 className="w-4 h-4" />Delete</button>
                   </div>

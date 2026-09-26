@@ -34,6 +34,12 @@ enum SessionStatus {
   COMPLETED
 }
 
+enum Difficulty {
+  Low
+  Medium
+  High
+}
+
 model User {
   id             String          @id @default(uuid())
   name           String
@@ -81,8 +87,9 @@ model QuizOrganizer {
 model Question {
   id        String @id @default(uuid())
   text      String
-  timeLimit Int    @default(15)
-  order     Int
+  timeLimit  Int        @default(15)
+  order      Int
+  difficulty Difficulty @default(Medium)
 
   quizId String
   quiz   Quiz   @relation(fields: [quizId], references: [id], onDelete: Cascade)

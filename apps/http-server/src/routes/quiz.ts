@@ -17,11 +17,11 @@ router.get("/:quizId", getQuizByIdController)
 
 
 // generate or regeneate quiz access code
-router.post("/:quizId/generate-access-code", generateAccessCodeController)
+router.post("/:quizId/generate-access-code", authMiddleware, generateAccessCodeController)
 
 
 // adding questions 
-router.post("/:quizId/questions", createQuestionController)
+router.post("/:quizId/questions", authMiddleware, createQuestionController)
 
 
 

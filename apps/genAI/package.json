@@ -4,12 +4,13 @@
   "private": true,
   "description": "Rexial GenAI service (FastAPI) - RAG question generation and chat",
   "scripts": {
-    "setup": "python3 -m venv .venv && .venv/bin/pip install --upgrade pip && .venv/bin/pip install -r requirements.txt",
+    "setup": "python3 -m venv .venv && .venv/bin/pip install --upgrade pip && .venv/bin/pip install -r requirements-dev.txt",
     "dev": "sh -c '[ -x .venv/bin/uvicorn ] && UV=.venv/bin/uvicorn || UV=uvicorn; exec \"$UV\" app.main:app --host 0.0.0.0 --port \"${GENAI_PORT:-8000}\" --reload'",
     "start": "sh -c '[ -x .venv/bin/uvicorn ] && UV=.venv/bin/uvicorn || UV=uvicorn; exec \"$UV\" app.main:app --host 0.0.0.0 --port \"${GENAI_PORT:-8000}\"'",
     "build": "sh -c '[ -x .venv/bin/python ] && PY=.venv/bin/python || PY=python3; exec \"$PY\" -m compileall -q app'",
     "lint": "sh -c '[ -x .venv/bin/python ] && PY=.venv/bin/python || PY=python3; exec \"$PY\" -m compileall -q app'",
-    "check-types": "sh -c '[ -x .venv/bin/python ] && PY=.venv/bin/python || PY=python3; exec \"$PY\" -m compileall -q app'"
+    "check-types": "sh -c '[ -x .venv/bin/python ] && PY=.venv/bin/python || PY=python3; exec \"$PY\" -m compileall -q app'",
+    "test": "sh -c '[ -x .venv/bin/python ] && PY=.venv/bin/python || PY=python3; exec \"$PY\" -m pytest -q'"
   },
   "engines": {
     "node": ">=18"

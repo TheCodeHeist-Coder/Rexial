@@ -1,5 +1,8 @@
+import json
 import os
-import shutil
+import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
@@ -8,7 +11,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from app.agent.Qnagent import chat
-from app.rag.rag_system import ask_pdf, generate_questions, generate_quiz
+from app.rag.rag_system import PdfHasNoText, ask_pdf, generate_questions, generate_quiz
 from app.utils.config import MissingAPIKey
 from app.utils.errors import provider_http_error
 
@@ -40,15 +43,36 @@ async def missing_api_key_handler(request: Request, exc: MissingAPIKey):
     )
 
 
+@app.exception_handler(PdfHasNoText)
+async def pdf_has_no_text_handler(request: Request, exc: PdfHasNoText):
+    return JSONResponse(
+        status_code=422,
+        content={"detail": str(exc)},
+    )
+
+
 UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "uploads"))
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+# Large PDFs blow past the model's context window and the client's
+# timeout anyway, so reject them up front with a clear message.
+MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "10"))
+MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024
+
+MAX_QUIZ_QUESTIONS = 20
 
 class ChatRequest(BaseModel):
     user_query: str
 
 
-def save_upload(file: UploadFile) -> Path:
-    """Persist an uploaded PDF under UPLOAD_DIR using a safe filename."""
+@contextmanager
+def saved_upload(file: UploadFile) -> Iterator[Path]:
+    """Write an uploaded PDF under UPLOAD_DIR for the duration of a request.
+
+    Each upload gets a unique name so concurrent requests with the same
+    filename cannot overwrite each other, and the file is deleted
+    afterwards so the uploads volume does not grow without bound.
+    """
 
     if file.content_type != "application/pdf":
         raise HTTPException(
@@ -56,21 +80,28 @@ def save_upload(file: UploadFile) -> Path:
             detail="Only PDF files are allowed."
         )
 
-    # strip any directory components a client may have sent
-    safe_name = Path(file.filename or "upload.pdf").name
+    file_path = UPLOAD_DIR / f"{uuid.uuid4().hex}.pdf"
 
-    if not safe_name:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid file name."
-        )
+    try:
+        written = 0
 
-    file_path = UPLOAD_DIR / safe_name
+        with open(file_path, "wb") as buffer:
+            # copy in chunks so an oversized upload is rejected without
+            # ever being written to disk in full
+            while chunk := file.file.read(1024 * 1024):
+                written += len(chunk)
 
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+                if written > MAX_UPLOAD_BYTES:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"PDF is too large. The limit is {MAX_UPLOAD_MB} MB."
+                    )
 
-    return file_path
+                buffer.write(chunk)
+
+        yield file_path
+    finally:
+        file_path.unlink(missing_ok=True)
 
 
 @app.get("/")
@@ -103,17 +134,16 @@ async def generate_pdf_questions(
     user_query: str = Form(...)
 ):
 
-    file_path = save_upload(file)
-
-    try:
-        questions = generate_questions(
-            str(file_path),
-            user_query
-        )
-    except MissingAPIKey:
-        raise
-    except Exception as exc:
-        raise provider_http_error(exc) from exc
+    with saved_upload(file) as file_path:
+        try:
+            questions = generate_questions(
+                str(file_path),
+                user_query
+            )
+        except (MissingAPIKey, PdfHasNoText):
+            raise
+        except Exception as exc:
+            raise provider_http_error(exc) from exc
 
     return {
         "message": "Questions generated successfully",
@@ -129,17 +159,16 @@ async def ask_pdf_question(
     user_query: str = Form(...)
 ):
 
-    file_path = save_upload(file)
-
-    try:
-        answer = ask_pdf(
-            str(file_path),
-            user_query
-        )
-    except MissingAPIKey:
-        raise
-    except Exception as exc:
-        raise provider_http_error(exc) from exc
+    with saved_upload(file) as file_path:
+        try:
+            answer = ask_pdf(
+                str(file_path),
+                user_query
+            )
+        except (MissingAPIKey, PdfHasNoText):
+            raise
+        except Exception as exc:
+            raise provider_http_error(exc) from exc
 
     return {
         "message": "Answer generated successfully",
@@ -148,31 +177,67 @@ async def ask_pdf_question(
         "answer": answer
     }
 
+def parse_exclude(raw: str) -> list[str]:
+    """Decode the JSON list of question texts the model must not repeat."""
+
+    if not raw:
+        return []
+
+    try:
+        value = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail="exclude must be a JSON list of strings."
+        ) from exc
+
+    if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+        raise HTTPException(
+            status_code=400,
+            detail="exclude must be a JSON list of strings."
+        )
+
+    return value
+
+
 @app.post("/generate-quiz")
 async def generate_quiz_endpoint(
     file: UploadFile = File(...),
-    user_query: str = Form(...)
+    user_query: str = Form(""),
+    count: int = Form(5, ge=1, le=MAX_QUIZ_QUESTIONS),
+    difficulty: str = Form("Mixed"),
+    exclude: str = Form(""),
 ):
     """Generate multiple-choice questions as structured JSON.
 
     Unlike /generate-questions, which returns a formatted text blob for
     humans to read, this returns data the quiz builder can render and
     save directly.
+
+    `user_query` is an optional focus (topic, chapter); `exclude` is a JSON
+    list of question texts not to repeat, used to regenerate one question.
     """
 
-    file_path = save_upload(file)
+    excluded = parse_exclude(exclude)
 
-    try:
-        questions = generate_quiz(str(file_path), user_query)
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=f"The model returned an unusable response: {exc}"
-        ) from exc
-    except MissingAPIKey:
-        raise
-    except Exception as exc:
-        raise provider_http_error(exc) from exc
+    with saved_upload(file) as file_path:
+        try:
+            questions = generate_quiz(
+                str(file_path),
+                user_query,
+                count=count,
+                difficulty=difficulty,
+                exclude=excluded,
+            )
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=502,
+                detail=f"The model returned an unusable response: {exc}"
+            ) from exc
+        except (MissingAPIKey, PdfHasNoText):
+            raise
+        except Exception as exc:
+            raise provider_http_error(exc) from exc
 
     if not questions:
         raise HTTPException(
