@@ -2,26 +2,19 @@
 fastapi
 uvicorn[standard]
 python-multipart
-aiofiles
 python-dotenv
 
 # LangChain core
-langchain
 langchain-core
-langchain-community
 langchain-text-splitters
-langgraph
 
 # Model providers
 langchain-google-genai
 langchain-groq
-langchain-huggingface
 langchain-tavily
 
-# Embeddings / vector search
-sentence-transformers
-faiss-cpu
+# Embeddings (ONNX Runtime, CPU only - no torch)
+fastembed
 
 # PDF parsing
 pypdf
-pymupdf

@@ -22,6 +22,22 @@ def get_search():
     return _search
 
 
+def content_text(content) -> str:
+    """Flatten a chat model reply to plain text.
+
+    Gemini returns content as a string OR as a list of parts (strings or
+    dicts with a "text" key), depending on the model and response.
+    """
+
+    if isinstance(content, list):
+        return "".join(
+            item.get("text", "") if isinstance(item, dict) else str(item)
+            for item in content
+        )
+
+    return str(content)
+
+
 def chat(user_query: str):
 
     # Decide whether web search is required
@@ -61,22 +77,7 @@ User Query:
         [HumanMessage(content=router_prompt)]
     )
 
-    # Gemini content can be string OR list
-    decision_content = decision_response.content
-
-    if isinstance(decision_content, list):
-        decision = ""
-
-        for item in decision_content:
-            if isinstance(item, dict):
-                decision += item.get("text", "")
-            else:
-                decision += str(item)
-
-        decision = decision.strip().upper()
-
-    else:
-        decision = str(decision_content).strip().upper()
+    decision = content_text(decision_response.content).strip().upper()
 
 
     # Web search required
@@ -105,7 +106,7 @@ Rules:
             [HumanMessage(content=prompt)]
         )
 
-        return response.content
+        return content_text(response.content)
 
 
     # Normal question
@@ -113,4 +114,4 @@ Rules:
         HumanMessage(content=user_query)
     ])
 
-    return response.content
+    return content_text(response.content)

@@ -3,6 +3,7 @@ FROM python:3.11-slim AS base
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     HF_HOME=/models \
+    FASTEMBED_CACHE_PATH=/models \
     PIP_DEFAULT_TIMEOUT=120 \
     PIP_RETRIES=10
 
@@ -11,10 +12,6 @@ WORKDIR /app/apps/genAI
 
 # dependencies stage
 FROM base AS deps
-
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends build-essential \
-    && rm -rf /var/lib/apt/lists/*
 
 COPY apps/genAI/requirements.txt ./requirements.txt
 
@@ -30,30 +27,29 @@ COPY apps/genAI/app/rag/rag_system.py /tmp/rag_system.py
 RUN MODEL=$(grep -oP 'EMBEDDING_MODEL = "\K[^"]+' /tmp/rag_system.py) \
     && echo "Baking embedding model: $MODEL" \
     && /venv/bin/python -c "\
-import sys; from sentence_transformers import SentenceTransformer; \
-SentenceTransformer(sys.argv[1])" "$MODEL" \
-    && rm /tmp/rag_system.py
+import sys; from fastembed import TextEmbedding; \
+TextEmbedding(sys.argv[1])" "$MODEL" \
+    && rm /tmp/rag_system.py \
+    && /venv/bin/pip uninstall -y pip setuptools
 
 
 # prod stage
 FROM base AS runner
 
 ENV PATH="/venv/bin:$PATH" \
-    UPLOAD_DIR=/data/uploads
+    UPLOAD_DIR=/data/uploads \
+    HF_HUB_OFFLINE=1
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY --from=deps /venv /venv
-COPY --from=deps /models /models
-
-COPY apps/genAI/app ./app
-
-# run as an unprivileged user
+# run as an unprivileged user. Ownership is set with COPY --chown rather
+# than chown -R, which would duplicate the whole model into a new layer.
 RUN useradd --create-home --uid 1001 genai \
     && mkdir -p /data/uploads \
-    && chown -R genai:genai /data/uploads /models
+    && chown genai:genai /data/uploads
+
+COPY --from=deps /venv /venv
+COPY --from=deps --chown=genai:genai /models /models
+
+COPY apps/genAI/app ./app
 
 USER genai
 

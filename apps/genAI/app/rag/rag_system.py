@@ -1,18 +1,44 @@
 import json
 import re
 
-from langchain_community.document_loaders import PyPDFLoader
-from langchain_community.vectorstores import InMemoryVectorStore
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_core.documents import Document
+from langchain_core.embeddings import Embeddings
+from langchain_core.vectorstores import InMemoryVectorStore
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from pypdf import PdfReader
 
 from app.prompts.quiz_json_prompt import QUIZ_JSON_PROMPT
 from app.prompts.rag_Qna_generate_prompt import QUESTION_GENERATION_PROMPT
 from app.utils.llm import get_groq_llm
 
-EMBEDDING_MODEL = "sentence-transformers/all-mpnet-base-v2"
+# Small ONNX model run by fastembed. It avoids pulling in torch (and its
+# multi-GB CUDA wheels) and needs a fraction of the RAM of a torch model.
+# Vectors are never persisted, so changing the model needs no migration.
+EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
+
+DIFFICULTIES = ("Low", "Medium", "High")
 
 _embeddings = None
+
+
+class PdfHasNoText(Exception):
+    """Raised when a PDF has no extractable text, e.g. a scanned document."""
+
+
+class FastEmbedEmbeddings(Embeddings):
+    """LangChain adapter over fastembed's ONNX text embedding model."""
+
+    def __init__(self, model_name: str):
+        from fastembed import TextEmbedding
+
+        self._model = TextEmbedding(model_name=model_name)
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        return [vector.tolist() for vector in self._model.embed(texts)]
+
+    def embed_query(self, text: str) -> list[float]:
+        # query_embed applies the query instruction prefix bge expects
+        return next(iter(self._model.query_embed(text))).tolist()
 
 
 def get_embeddings():
@@ -26,24 +52,39 @@ def get_embeddings():
     global _embeddings
 
     if _embeddings is None:
-        _embeddings = HuggingFaceEmbeddings(
-            model_name=EMBEDDING_MODEL
-        )
+        _embeddings = FastEmbedEmbeddings(EMBEDDING_MODEL)
 
     return _embeddings
 
 
-def generate_questions(pdf_path: str, user_query: str):
+def load_pdf_chunks(pdf_path: str, chunk_size: int, chunk_overlap: int) -> list[Document]:
+    """Read a PDF page by page and split it into overlapping chunks."""
 
-    loader = PyPDFLoader(pdf_path)
-    documents = loader.load()
+    documents = [
+        Document(
+            page_content=page.extract_text() or "",
+            metadata={"source": pdf_path, "page": number},
+        )
+        for number, page in enumerate(PdfReader(pdf_path).pages)
+    ]
+
+    if not any(doc.page_content.strip() for doc in documents):
+        raise PdfHasNoText(
+            "This PDF has no selectable text (it may be a scanned image). "
+            "Try a PDF exported from a document instead."
+        )
 
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=3000,
-        chunk_overlap=300
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap
     )
 
-    chunks = splitter.split_documents(documents)
+    return splitter.split_documents(documents)
+
+
+def generate_questions(pdf_path: str, user_query: str):
+
+    chunks = load_pdf_chunks(pdf_path, chunk_size=3000, chunk_overlap=300)
 
     context = "\n\n".join(
         doc.page_content
@@ -62,15 +103,7 @@ def generate_questions(pdf_path: str, user_query: str):
 
 def create_pdf_vectorstore(pdf_path: str):
 
-    loader = PyPDFLoader(pdf_path)
-    documents = loader.load()
-
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=150
-    )
-
-    chunks = splitter.split_documents(documents)
+    chunks = load_pdf_chunks(pdf_path, chunk_size=1000, chunk_overlap=150)
 
     vectorstore = InMemoryVectorStore.from_documents(
         chunks,
@@ -144,30 +177,59 @@ def _extract_json(raw: str) -> dict:
     return json.loads(text[start:end + 1])
 
 
-def generate_quiz(pdf_path: str, user_query: str) -> list[dict]:
-    """Generate multiple-choice questions as structured data.
+def build_quiz_prompt(
+    context: str,
+    user_query: str,
+    count: int,
+    difficulty: str,
+    exclude: list[str],
+) -> str:
+    """Fill the quiz prompt from the structured generator settings."""
 
-    Returns a list of questions, each with exactly four options and
-    exactly one correct answer. Malformed questions are dropped rather
-    than failing the whole request.
-    """
+    if difficulty in DIFFICULTIES:
+        difficulty_rule = f'Every question must have "difficulty": "{difficulty}".'
+    else:
+        difficulty_rule = "Mix Low, Medium and High difficulty."
 
-    loader = PyPDFLoader(pdf_path)
-    documents = loader.load()
+    if exclude:
+        listed = "\n".join(f"- {text}" for text in exclude)
+        exclude_rule = (
+            "Do NOT repeat or rephrase any of these existing questions:\n"
+            f"{listed}"
+        )
+    else:
+        exclude_rule = ""
 
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=3000,
-        chunk_overlap=300
+    return QUIZ_JSON_PROMPT.format(
+        context=context,
+        user_query=user_query.strip() or "Cover the most important concepts.",
+        count=count,
+        difficulty_rule=difficulty_rule,
+        exclude_rule=exclude_rule,
     )
 
-    chunks = splitter.split_documents(documents)
+
+def generate_quiz(
+    pdf_path: str,
+    user_query: str,
+    count: int = 5,
+    difficulty: str = "Mixed",
+    exclude: list[str] | None = None,
+) -> list[dict]:
+    """Generate multiple-choice questions as structured data.
+
+    Returns at most `count` questions, each with exactly four options and
+    exactly one correct answer. Malformed questions are dropped rather
+    than failing the whole request. `difficulty` is one of DIFFICULTIES,
+    or anything else for a mix; `exclude` lists question texts the model
+    must not repeat (used to regenerate a single question).
+    """
+
+    chunks = load_pdf_chunks(pdf_path, chunk_size=3000, chunk_overlap=300)
 
     context = "\n\n".join(doc.page_content for doc in chunks)
 
-    prompt = QUIZ_JSON_PROMPT.format(
-        context=context,
-        user_query=user_query
-    )
+    prompt = build_quiz_prompt(context, user_query, count, difficulty, exclude or [])
 
     response = get_groq_llm().invoke(prompt)
 
@@ -201,7 +263,7 @@ def generate_quiz(pdf_path: str, user_query: str) -> list[dict]:
 
         difficulty = str(item.get("difficulty", "Medium")).capitalize()
 
-        if difficulty not in ("Low", "Medium", "High"):
+        if difficulty not in DIFFICULTIES:
             difficulty = "Medium"
 
         questions.append({
@@ -210,4 +272,4 @@ def generate_quiz(pdf_path: str, user_query: str) -> list[dict]:
             "options": cleaned,
         })
 
-    return questions
+    return questions[:count]

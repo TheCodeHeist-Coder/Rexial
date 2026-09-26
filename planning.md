@@ -102,7 +102,7 @@ AI work stays out of the Node servers and can scale on its own.
 -> ``POST /chat``               general chat, with web search when needed
 
 **How it works**
--> PDF is chunked, embedded with ``sentence-transformers``, and searched
+-> PDF is chunked, embedded with ``fastembed`` (ONNX, CPU), and searched
    with an in-memory vector store (RAG)
 -> Groq runs question generation; Gemini runs chat; Tavily handles web search
 -> Model output is validated before it is returned: any question without

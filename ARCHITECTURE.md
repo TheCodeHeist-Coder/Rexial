@@ -209,8 +209,8 @@ score nothing.
 
 ### genAI — AI question generation
 
-FastAPI, isolated from the Node services so the ML dependency tree (torch,
-sentence-transformers, faiss) never touches them.
+FastAPI, isolated from the Node services so the Python AI dependency tree
+(LangChain, ONNX Runtime) never touches them.
 
 | Endpoint | Purpose |
 |---|---|
@@ -221,7 +221,8 @@ sentence-transformers, faiss) never touches them.
 | `GET /health` | Liveness, used by the container healthcheck |
 
 Providers: **Groq** for question generation, **Gemini** for chat, **Tavily**
-for web search, **HuggingFace** sentence-transformers for embeddings.
+for web search, **fastembed** (`bge-small-en-v1.5` on ONNX Runtime, CPU only)
+for embeddings.
 
 All clients are built **lazily on first use**. Constructing them at import time
 meant a missing API key crashed the whole service on startup — including
@@ -502,8 +503,8 @@ are long-lived and stateful. Splitting lets you run many WS instances during a
 big quiz without over-provisioning the REST tier.
 
 **Why is the AI service Python and separate?**
-The libraries that matter (torch, sentence-transformers, faiss) are Python-only.
-Isolating them keeps a multi-GB dependency tree out of the Node images, lets the
+The libraries that matter (LangChain, fastembed) are Python-only.
+Isolating them keeps the ML dependency tree out of the Node images, lets the
 service scale independently, and means an LLM outage degrades one feature rather
 than taking down the platform.
 
@@ -531,7 +532,6 @@ Honest list of what is not solved yet.
 | **Join codes** | Generation has a race condition — two concurrent requests can collide (tracked in [issues.md](issues.md) #1) |
 | **AI vector store** | `InMemoryVectorStore` is rebuilt per request; no caching, so the same PDF is re-embedded every time (#5) |
 | **AI cost** | No rate limiting or per-user quota on generation endpoints |
-| **Uploads** | PDFs are written to a volume and never cleaned up |
 | **Reconnection** | A participant who drops mid-quiz rejoins the lobby, but in-flight question state is not restored |
 | **Deploys** | `docker compose up -d` recreates containers — brief downtime, no rolling update |
 | **Environments** | No staging; `main` deploys straight to production |

@@ -3,6 +3,8 @@ import { errorResponse } from '../utils/error';
 import { prisma } from '@repo/db';
 import { generateCode } from '../utils/code';
 
+const DIFFICULTIES = ['Low', 'Medium', 'High'];
+
 export const createQuizController = async (req: Request, res: Response) => {
     try {
 
@@ -190,9 +192,11 @@ export const generateAccessCodeController = async (req: Request, res: Response) 
 export const createQuestionController = async (req: Request, res: Response) => {
     try {
         const { quizId } = req.params;
-        const { text, timeLimit, answers } = req.body;
+        const { text, timeLimit, answers, difficulty = "Medium" } = req.body;
 
         if (!text || !timeLimit || !answers) return errorResponse(res, 400, "Text, time limit and answers are required")
+
+        if (!DIFFICULTIES.includes(difficulty)) return errorResponse(res, 400, "Difficulty must be Low, Medium or High")
 
         const isOrganizer = await prisma.quizOrganizer.findFirst({
             where: {
@@ -216,6 +220,7 @@ export const createQuestionController = async (req: Request, res: Response) => {
                 text,
                 timeLimit: timeLimit || 15,
                 order: totalQuestions + 1,
+                difficulty,
                 quizId: quizId as string,
                 answers: {
                     create: answers.map((answer: any) => ({
