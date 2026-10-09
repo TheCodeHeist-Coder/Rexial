@@ -180,10 +180,13 @@ export const handleMessage = async (client: Client, data: any) => {
 
         case 'quiz:start': {
             const { sessionId } = payload;
-            await prisma.quizSession.update({
-                where: { id: sessionId },
+            // A session the super-admin cancelled (or one that already
+            // ended) must not be revived by a host coming back to the lobby.
+            const { count } = await prisma.quizSession.updateMany({
+                where: { id: sessionId, status: { in: ['WAITING', 'IN_PROGRESS'] } },
                 data: { status: 'IN_PROGRESS', startedAt: new Date() }
             });
+            if (count === 0) break;
             broadcastToSession(sessionId, 'quiz:start');
             break;
         }

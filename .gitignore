@@ -43,3 +43,5 @@ yarn-error.log*
 
 # Local scratch: issue bodies to paste into GitHub
 ISSUES-TO-CREATE.local.md
+ISSUES-FROM-CODE-REVIEW.local.md
+ISSUES-UI-UX.local.md

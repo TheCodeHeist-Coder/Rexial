@@ -46,3 +46,8 @@ assets
 apps/genAI/uploads
 **/uploads
 coverage
+
+# Super-admin panel and its API are deployed separately (Vercel / Render),
+# not as images, so keep them out of every build context.
+apps/admin
+apps/admin-server

@@ -63,8 +63,10 @@ jobs:
       - name: Type-check
         run: pnpm run check-types
 
+      # The super-admin panel (apps/admin, apps/admin-server) is deployed
+      # by hand to Vercel / Render and is deliberately left out of CI.
       - name: Build all workspaces
-        run: pnpm run build
+        run: pnpm run build --filter='!admin' --filter='!admin-server'
 
   prisma:
     name: Prisma schema
