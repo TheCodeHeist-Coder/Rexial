@@ -7,6 +7,7 @@ import authRoutes from "./routes/authRoutes"
 import quizzesRoutes from "./routes/quiz"
 import quizSessionRoutes from "./routes/session"
 import inviteRoutes from './routes/invite'
+import { requestLogger } from './middlewares/requestLogger'
 
 const app: Express = express()
 
@@ -14,6 +15,7 @@ app.use(cors({
     origin: 'https://rexial.in',
     credentials: true
 }))
+app.use(requestLogger)
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

@@ -32,6 +32,9 @@ enum SessionStatus {
   WAITING
   IN_PROGRESS
   COMPLETED
+  // Set by the super-admin panel when it closes a session that was
+  // abandoned (never finished and no longer live).
+  CANCELLED
 }
 
 enum Difficulty {
@@ -46,6 +49,7 @@ model User {
   email          String          @unique
   password       String
   createdAt      DateTime        @default(now())
+  lastLoginAt    DateTime?
   quizOrganizers QuizOrganizer[]
   participants   Participant[]
   quizzes        Quiz[]
@@ -158,4 +162,23 @@ model ParticipantAnswer {
   // question, so this is what makes double-scoring impossible even if two
   // submissions race past the application-level check.
   @@unique([participantId, questionId])
+}
+
+
+// One row per HTTP request to http-server, written in batches by its
+// request logger and read by the super-admin panel's traffic page. Rows
+// older than REQUEST_LOG_RETENTION_DAYS are pruned by http-server.
+model ApiRequestLog {
+  id         BigInt   @id @default(autoincrement())
+  method     String
+  path       String
+  statusCode Int
+  durationMs Int
+  ip         String?
+  userId     String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([userId])
 }

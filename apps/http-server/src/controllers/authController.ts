@@ -33,6 +33,9 @@ export const userRegisterController = async (req: Request, res: Response) => {
             }
         });
 
+        // Lets the request logger attribute this request to the new user.
+        req.userId = user.id;
+
         // generating token...
         const token = jwt.sign({
             userId: user.id
@@ -74,6 +77,13 @@ export const userLoginController = async (req: Request, res: Response) => {
         const passwordIsCorrect = await bcrypt.compare(password, user.password);
 
         if (!passwordIsCorrect) return errorResponse(res, 400, "Invalid Credentials...");
+
+        req.userId = user.id;
+
+        // Feeds the super-admin panel's "last seen" column; a failure here
+        // must not block the login itself.
+        prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } })
+            .catch((error) => console.log("lastLoginAt update failed", error));
 
         const token = jwt.sign({
             userId: user.id

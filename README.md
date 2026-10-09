@@ -78,6 +78,11 @@ If you want to work on any of the following, there is real code here to work on:
 | `apps/ws-server` | WebSockets | 8080 |
 | `apps/genAI` | Python + FastAPI | 8000 |
 | `packages/db` | Prisma + PostgreSQL | 5432 |
+| `apps/admin` | React (super-admin panel) | 5174 |
+| `apps/admin-server` | Node + Express (admin API) | 5000 |
+
+The super-admin panel is optional and deployed separately, not through Docker or
+CI/CD — see [apps/admin-server/README.md](apps/admin-server/README.md).
 
 **[Read the full architecture guide →](ARCHITECTURE.md)** — service boundaries, data
 model, request flows, caching, and the reasoning behind each decision.
