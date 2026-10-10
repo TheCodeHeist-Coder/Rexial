@@ -92,6 +92,29 @@ export const handleMessage = async (client: Client, data: any) => {
 
             const { sessionId, role, participantId, userId } = payload;
 
+            // Verify if the client claims to be an organizer
+            let verifiedRole = role;
+            if (role === 'ORGANIZER') {
+                if (!userId) {
+                    verifiedRole = 'PARTICIPANT';
+                } else {
+                    const session = await getCachedSession(sessionId);
+                    const quizId = session?.quizId;
+                    const isOrganizer = quizId
+                        ? await prisma.quizOrganizer.findFirst({
+                            where: {
+                                quizId,
+                                userId,
+                            }
+                        })
+                        : null;
+
+                    if (!isOrganizer) {
+                        verifiedRole = 'PARTICIPANT';
+                    }
+                }
+            }
+
             // A reconnecting client re-joins with the same participantId while
             // its previous socket may still be registered: the heartbeat can
             // take up to two rounds to notice a dead peer, and a background
@@ -114,11 +137,11 @@ export const handleMessage = async (client: Client, data: any) => {
             indexClient(client, sessionId);
 
             client.sessionId = sessionId;
-            client.role = role;
+            client.role = verifiedRole;
             client.participantId = participantId;
             client.userId = userId;
 
-            if (role === 'ORGANIZER') {
+            if (verifiedRole === 'ORGANIZER') {
 
                 const session = await getCachedSession(sessionId);
                 const participants = await getCachedParticipants(sessionId);
@@ -136,7 +159,7 @@ export const handleMessage = async (client: Client, data: any) => {
 
 
                 console.log("JOIN CODE FROM WS:", payload);
-            } else if (role === 'PARTICIPANT' && participantId) {
+            } else if (verifiedRole === 'PARTICIPANT' && participantId) {
                 const participant = await prisma.participant.findUnique({
                     where: { id: participantId }
                 });
@@ -179,6 +202,7 @@ export const handleMessage = async (client: Client, data: any) => {
 
 
         case 'quiz:start': {
+            if (client.role !== 'ORGANIZER' || client.sessionId !== payload.sessionId) break;
             const { sessionId } = payload;
             // A session the super-admin cancelled (or one that already
             // ended) must not be revived by a host coming back to the lobby.
@@ -192,6 +216,7 @@ export const handleMessage = async (client: Client, data: any) => {
         }
 
         case 'quiz:next-question': {
+            if (client.role !== 'ORGANIZER' || client.sessionId !== payload.sessionId) break;
             const { sessionId, questionIndex = 0 } = payload;
 
             const questions = await getCachedQuestions(sessionId);
@@ -271,7 +296,7 @@ export const handleMessage = async (client: Client, data: any) => {
 
 
         case 'quiz:end': {
-
+            if (client.role !== 'ORGANIZER' || client.sessionId !== payload.sessionId) break;
             const { sessionId } = payload;
 
             if (!sessionId) break;
@@ -297,5 +322,3 @@ export const handleMessage = async (client: Client, data: any) => {
         }
     }
 }
-
-
