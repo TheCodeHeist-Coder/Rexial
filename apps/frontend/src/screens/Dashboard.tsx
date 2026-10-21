@@ -132,38 +132,6 @@ function Dashboard() {
           </button>
         </div>
 
-        {showCreate && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-surface border border-white/10 rounded-2xl p-8 max-w-md w-full mx-4">
-              <h2 className="text-2xl font-bold mb-4">Create New Quiz</h2>
-              <form onSubmit={handleCreate}>
-                <input
-                  type="text"
-                  placeholder="Quiz title"
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  className="w-full px-4 py-2 bg-black/50 border border-white/10 rounded-lg mb-4 text-white placeholder-zinc-500 focus:outline-none focus:border-pink-500"
-                />
-                <div className="flex gap-3">
-                  <button
-                    type="submit"
-                    className="flex-1 py-2 px-4 bg-pink-600 hover:bg-pink-700 rounded-lg font-semibold text-white transition"
-                  >
-                    Create
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowCreate(false)}
-                    className="flex-1 py-2 px-4 bg-white/10 hover:bg-white/20 rounded-lg font-semibold text-white transition"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
         {/* Hosted Quizzes */}
         <div className="max-w-7xl px-12 mt-20 m-auto mb-16 ">
           <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 font-secondary text-pink-600">
@@ -280,6 +248,7 @@ function Dashboard() {
                 <input
                   type="text"
                   autoFocus
+                  required
                   placeholder="Enter quiz title..."
                   className="input-field mb-6 py-3 px-5 font-bold tracking-wider font-secondary outline-none border border-pink-800 sm:w-96 min-w-60 m-auto rounded-xl text-gray-300"
                   value={newTitle}
@@ -293,7 +262,7 @@ function Dashboard() {
                 />
                 <div className="flex gap-3 justify-end">
                   <button type="button" onClick={() => setShowCreate(false)} className="border active:scale-95 bg-rose-800/20 hover:bg-rose-800/30 tracking-wider font-secondary w-full cursor-pointer px-10 py-3 rounded-xl font-extrabold text-rose-600 border-rose-500/40">Cancel</button>
-                  <button type="submit" disabled={!newTitle.trim()} className="border active:scale-95 font-secondary w-full cursor-pointer border-pink-600/40 px-10 py-3 bg-pink-600/20 hover:bg-pink-600/30 rounded-xl font-extrabold text-pink-600"> {titleLoading ? "Creating..." : "Create"}  </button>
+                  <button type="submit" disabled={!newTitle.trim() || titleLoading} className="border active:scale-95 font-secondary w-full cursor-pointer border-pink-600/40 px-10 py-3 bg-pink-600/20 hover:bg-pink-600/30 rounded-xl font-extrabold text-pink-600"> {titleLoading ? "Creating..." : "Create"}  </button>
                 </div>
               </form>
             </div>
