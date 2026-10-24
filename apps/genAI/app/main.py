@@ -131,7 +131,7 @@ def chat_endpoint(request: ChatRequest):
 
 
 @app.post("/generate-questions")
-async def generate_pdf_questions(
+def generate_pdf_questions(
     file: UploadFile = File(...),
     user_query: str = Form(...)
 ):
@@ -156,7 +156,7 @@ async def generate_pdf_questions(
 
 
 @app.post("/ask-pdf")
-async def ask_pdf_question(
+def ask_pdf_question(
     file: UploadFile = File(...),
     user_query: str = Form(...)
 ):
@@ -203,7 +203,7 @@ def parse_exclude(raw: str) -> list[str]:
 
 
 @app.post("/generate-quiz")
-async def generate_quiz_endpoint(
+def generate_quiz_endpoint(
     file: UploadFile = File(...),
     user_query: str = Form(""),
     count: int = Form(5, ge=1, le=MAX_QUIZ_QUESTIONS),
