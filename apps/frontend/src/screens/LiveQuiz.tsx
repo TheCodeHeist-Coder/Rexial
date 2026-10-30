@@ -52,6 +52,10 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [connectionState, setConnectionState] =
     useState<'connected' | 'reconnecting' | 'failed'>('connected');
+  // Set when a send was refused because the socket was not open, so the
+  // user is told at the moment they tap rather than only by the banner.
+  const [sendFailed, setSendFailed] = useState(false);
+  const isConnected = connectionState === 'connected';
   const [gameState, setGameState] = useState<GameState>('WAITING');
   const [participants, setParticipants] = useState<any[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState<any>(null);
@@ -212,6 +216,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
 
         reconnectAttempts = 0;
         setConnectionState('connected');
+        setSendFailed(false);
 
         if (!sessionId) {
           console.log("Session is not initiated. Try again...")
@@ -414,30 +419,44 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
   }, [sessionId, isOrganizer]);
 
 
+  // `ws?.send` on a closed socket does nothing and throws nothing, so every
+  // send goes through here and reports whether the message actually left.
+  const sendMessage = (message: { type: string; payload: Record<string, unknown> }) => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      setSendFailed(true);
+      return false;
+    }
+    ws.send(JSON.stringify(message));
+    setSendFailed(false);
+    return true;
+  };
+
   const handleStart = () => {
-    ws?.send(JSON.stringify({ type: 'quiz:start', payload: { sessionId } }));
+    sendMessage({ type: 'quiz:start', payload: { sessionId } });
   };
 
   const handleNext = () => {
     const nextIdx = qIndex + 1;
-    setQIndex(nextIdx);
-    ws?.send(JSON.stringify({
+    const sent = sendMessage({
       type: 'quiz:next-question',
       payload: {
         sessionId,
         questionIndex: nextIdx
       }
-    }))
+    });
+    if (sent) setQIndex(nextIdx);
   };
 
 
   const handleAnswer = (answerId: string) => {
     if (selectedAnswer || gameState !== GameState.QUESTION) return;
 
-    setSelectedAnswer(answerId);
     const timeMs = Date.now() - questionStartTime;
 
-    ws?.send(JSON.stringify({
+    // Refuse the tap rather than queue it for the reconnect: a queued answer
+    // could land after the question closed, with a timeMs that no longer
+    // means anything.
+    const sent = sendMessage({
       type: 'quiz:submit-answer',
       payload: {
         sessionId,
@@ -446,8 +465,20 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
         answerId,
         timeMs
       }
-    }))
+    });
+    if (sent) setSelectedAnswer(answerId);
   }
+
+  // Shown beside the answers and the host controls, so the reason they are
+  // disabled or refused is where the user is looking, not only in the banner.
+  const notSentNotice = (refused: string, waiting: string) => {
+    if (!sendFailed && isConnected) return null;
+    return (
+      <p role="alert" className="mt-6 text-center text-sm sm:text-base text-red-400 font-secondary tracking-wide">
+        {sendFailed ? `Not connected — ${refused}` : `Not connected — ${waiting}`}
+      </p>
+    );
+  };
 
 
   // Rendered above every game state, so a participant always knows the live
@@ -519,11 +550,13 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
 
                     <button
                       onClick={handleStart}
-                      disabled={participants.length === 0}
+                      disabled={participants.length === 0 || !isConnected}
                       className="btn-primary py-4 px-12 rounded-lg text-xl bg-linear-to-t from-pink-600 to-pink-500 hover:from-pink-800/90 font-secondary transition duration-200  cursor-pointer  font-extrabold uppercase tracking-wider disabled:opacity-50"
                     >
                       Start Game
                     </button>
+                    {notSentNotice('the game was not started.',
+                      'the game can be started once the connection is back.')}
                   </>
                 ) : (
                   <>
@@ -760,7 +793,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
                       <button
                         key={answer.id}
                         onClick={() => handleAnswer(answer.id)}
-                        disabled={Boolean(selectedAnswer) || showResults}
+                        disabled={Boolean(selectedAnswer) || showResults || !isConnected}
                         className={`relative w-full px-4 sm:px-6 md:px-12 py-3 sm:py-4 rounded-full border-2 text-base sm:text-lg md:text-xl font-bold flex items-center justify-center text-center transition-all ${bgClass} ${opacityClass}`}
                       >
                         {answer.text}
@@ -777,6 +810,10 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
                   })}
                 </div>
 
+                {gameState === GameState.QUESTION && !isOrganizer && !selectedAnswer &&
+                  notSentNotice('your answer was not sent.',
+                    'answers cannot be sent until the connection is back.')}
+
               </div>
             </div>
           </div>
@@ -786,8 +823,9 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
 
 
           {gameState === GameState.RESULTS && isOrganizer && (
-            <div className="fixed bottom-0 left-0 w-full p-6 bg-background/80 backdrop-blur-md border-t border-white/10 flex justify-end">
-              <button onClick={handleNext} className="btn-primary py-3 px-8 text-lg font-bold">Show Standings →</button>
+            <div className="fixed bottom-0 left-0 w-full p-6 bg-background/80 backdrop-blur-md border-t border-white/10 flex flex-col items-end">
+              <button onClick={handleNext} disabled={!isConnected} className="btn-primary py-3 px-8 text-lg font-bold disabled:opacity-50">Show Standings →</button>
+              {notSentNotice('the next step was not sent.', 'wait for the connection to come back.')}
             </div>
           )}
         </div>
@@ -876,8 +914,9 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
               </div>
 
               {isOrganizer && (
-                <div className="fixed bottom-0 sm:right-6 z-50  p-6 bg-black  border-t border-white/20 flex justify-center">
-                  <button onClick={handleNext} className="cursor-pointer active:scale-95  py-4 px-12 text-lg uppercase tracking-widest shadow-xl font-secondary bg-linear-to-b from-pink-500 to-pink-700/70 hover:to-pink-700/60 transition duration-200 text-gray-900 font-extrabold border border-pink-800 rounded-2xl">Next Question</button>
+                <div className="fixed bottom-0 sm:right-6 z-50  p-6 bg-black  border-t border-white/20 flex flex-col items-center">
+                  <button onClick={handleNext} disabled={!isConnected} className="disabled:opacity-50 cursor-pointer active:scale-95  py-4 px-12 text-lg uppercase tracking-widest shadow-xl font-secondary bg-linear-to-b from-pink-500 to-pink-700/70 hover:to-pink-700/60 transition duration-200 text-gray-900 font-extrabold border border-pink-800 rounded-2xl">Next Question</button>
+                  {notSentNotice('the next question was not sent.', 'wait for the connection to come back.')}
                 </div>
               )}
             </div>
