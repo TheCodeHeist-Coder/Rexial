@@ -20,7 +20,7 @@ export const timerDeadlineKey = (sessionId: string) =>
 
 // Which question is in flight, so an early finish can prove it is closing the
 // question it meant to and not one that already moved on.
-const currentQuestionKey = (sessionId: string) =>
+export const currentQuestionKey = (sessionId: string) =>
     `quiz:current-q:${sessionId}`;
 
 // Set once when a question closes, by whichever path gets there first, so the
@@ -109,6 +109,18 @@ async function finishQuestion(
     setTimeout(() => {
         broadcastToSession(sessionId, 'quiz:leaderboard', { leaderboard });
     }, 2_000);
+}
+
+/**
+ * Mark no question as open for this session.
+ *
+ * Answers are only accepted while the deadline key exists, so removing it is
+ * what stops late answers once the host ends the quiz. The normal close path
+ * does this itself in finishQuestion; this is for the paths that stop the
+ * countdown without going through it.
+ */
+export async function closeQuestionWindow(sessionId: string) {
+    await cache.del(timerDeadlineKey(sessionId), currentQuestionKey(sessionId));
 }
 
 /**
