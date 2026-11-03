@@ -198,8 +198,10 @@ Two security-relevant details:
 1. **Questions are sanitized before broadcast.** The `quiz:question` payload
    maps answers down to `{ id, text }` only. The client literally cannot know
    which option is correct, so you cannot cheat by reading the socket.
-2. **Scoring happens server-side.** The client sends `timeMs`; the server
-   decides correctness and points.
+2. **Scoring happens server-side.** The server decides correctness and
+   points, and measures the time used itself from the question's deadline in
+   Redis. A `timeMs` in the message is ignored. Only an answer for the
+   question that is currently open, received before its deadline, counts.
 3. **The organizer role is decided by the server.** A `join` that asks for
    `ORGANIZER` must carry the host's JWT. The ws-server verifies it with the
    same `JWT_SECRET` as http-server and checks that the user is an accepted
@@ -212,11 +214,12 @@ Two security-relevant details:
 Scoring rewards speed:
 
 ```js
-points = isCorrect ? Math.max(10, 1000 - timeMs) : 0
+points = isCorrect ? Math.max(1, Math.ceil(10 * (1 - elapsedMs / limitMs))) : 0
 ```
 
-A correct answer in 200ms scores 800; one at 3s floors at 10. Wrong answers
-score nothing.
+`elapsedMs` is how much of the question's time limit had gone when the answer
+reached the server. A correct answer scores 10 down to 1 across the time
+limit. Wrong answers score nothing.
 
 ### genAI — AI question generation
 

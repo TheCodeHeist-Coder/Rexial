@@ -17,7 +17,13 @@ import {
     invalidateSession,
     clearSessionCache,
 } from './cache.js';
-import { startQuestionTimer, timerDeadlineKey, finishQuestionEarly } from "./timeManager.js";
+import {
+    startQuestionTimer,
+    timerDeadlineKey,
+    currentQuestionKey,
+    closeQuestionWindow,
+    finishQuestionEarly,
+} from "./timeManager.js";
 import { enqueueAnswer, countAnswered, drainSession } from "./answerQueue.js";
 import {
     authorizeOrganizerAction,
@@ -372,6 +378,7 @@ export const handleMessage = async (client: Client, data: any) => {
                 // Buffered answers first: the quiz is over, so anything left
                 // in the queue has no later flush to land in and the final
                 // scores would be missing them permanently.
+                await closeQuestionWindow(sessionId);
                 await drainSession(sessionId);
                 await endQuizSession(sessionId);
                 await clearSessionCache(sessionId);
@@ -429,7 +436,9 @@ export const handleMessage = async (client: Client, data: any) => {
         }
 
         case 'quiz:submit-answer': {
-            const { sessionId, participantId, questionId, answerId, timeMs } = payload;
+            // timeMs is deliberately not read: the client's own stopwatch can
+            // say anything. Time used is measured here from the deadline.
+            const { sessionId, participantId, questionId, answerId } = payload;
 
             if (!participantId) break;
 
@@ -438,8 +447,28 @@ export const handleMessage = async (client: Client, data: any) => {
             // handled below. Asking the database first would add a round-trip
             // to every answer and still not settle a race.
             const questions = await getCachedQuestions(sessionId);
-            const question = questions.find((q: any) => q.id === questionId);
-            const answerMeta = question?.answers.find((a: any) => a.id === answerId);
+            const questionIndex = questions.findIndex((q: any) => q.id === questionId);
+            const question = questions[questionIndex];
+            if (!question) break;
+
+            // Only the question that is open right now, and only before its
+            // deadline, can be answered. finishQuestion deletes both keys the
+            // moment a question closes and closeQuestionWindow does the same
+            // when the quiz ends, so a missing deadline means nothing is
+            // open. Without this, the correct answers broadcast in
+            // quiz:question-results could be replayed for full points by
+            // anyone who had skipped the question.
+            const [rawDeadline, rawCurrent] = await Promise.all([
+                cache.get(timerDeadlineKey(sessionId)),
+                cache.get(currentQuestionKey(sessionId)),
+            ]);
+            if (!rawDeadline || rawCurrent === null || Number(rawCurrent) !== questionIndex) break;
+
+            const now = Date.now();
+            const deadline = Number(rawDeadline);
+            if (!Number.isFinite(deadline) || now > deadline) break;
+
+            const answerMeta = question.answers.find((a: any) => a.id === answerId);
 
             const isCorrect = !!answerMeta?.isCorrect;
 
@@ -452,11 +481,11 @@ export const handleMessage = async (client: Client, data: any) => {
             // Now a correct answer is worth MAX_POINTS down to 1, scaled over
             // the time actually allowed; a wrong answer is worth 0. Answering
             // at all still scores, so the floor is 1 rather than 0.
-            const limitMs = Math.max(1, (question?.timeLimit ?? 15) * 1_000);
-            // timeMs comes from the client and is not trusted for anything
-            // beyond ordering: clamp it so a negative or oversized value
-            // cannot mint points or push the score below the floor.
-            const elapsedMs = Math.min(Math.max(Number(timeMs) || 0, 0), limitMs);
+            const limitMs = Math.max(1, (question.timeLimit ?? 15) * 1_000);
+            // Time used = time allowed minus time that was left when the
+            // answer reached the server. Clamped because the timer and the
+            // limit are read separately and can disagree by a few ms.
+            const elapsedMs = Math.min(Math.max(limitMs - (deadline - now), 0), limitMs);
             const points = isCorrect
                 ? Math.max(1, Math.ceil(MAX_POINTS * (1 - elapsedMs / limitMs)))
                 : 0;
@@ -471,7 +500,7 @@ export const handleMessage = async (client: Client, data: any) => {
             // A false return is a duplicate submission already buffered,
             // which is what the unique constraint would have rejected anyway.
             if (!enqueueAnswer(sessionId, {
-                participantId, questionId, answerId, timeMs, isCorrect, points,
+                participantId, questionId, answerId, timeMs: elapsedMs, isCorrect, points,
             })) break;
 
             // The leaderboard cache has a 10s TTL and is invalidated again
@@ -530,8 +559,7 @@ export const handleMessage = async (client: Client, data: any) => {
                     // session cache is not invalidated when the organizer
                     // advances, so its currentQuestionIndex can be an hour
                     // stale and would close the wrong question.
-                    const idx = questions.findIndex((q: any) => q.id === questionId);
-                    if (idx >= 0) await finishQuestionEarly(sessionId, idx);
+                    await finishQuestionEarly(sessionId, questionIndex);
                 }
             }
 
@@ -548,6 +576,10 @@ export const handleMessage = async (client: Client, data: any) => {
                 clearInterval(sessionTimers.get(sessionId));
                 sessionTimers.delete(sessionId);
             }
+
+            // Stop accepting answers before draining the buffer, so nothing
+            // can be queued after the final board is built.
+            await closeQuestionWindow(sessionId);
 
             // Buffered answers must land before the final standings are
             // read, or the last question's scores are missing from the board

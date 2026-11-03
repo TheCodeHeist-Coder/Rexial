@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
     drainSession: vi.fn(),
     endQuizSession: vi.fn(),
     startQuestionTimer: vi.fn(),
+    closeQuestionWindow: vi.fn(),
 }));
 
 vi.mock("@repo/db", () => ({ prisma: mocks.prisma }));
@@ -41,6 +42,8 @@ vi.mock("./cache.js", () => ({
 vi.mock("./timeManager.js", () => ({
     startQuestionTimer: mocks.startQuestionTimer,
     timerDeadlineKey: (id: string) => `deadline:${id}`,
+    currentQuestionKey: (id: string) => `current:${id}`,
+    closeQuestionWindow: mocks.closeQuestionWindow,
     finishQuestionEarly: vi.fn(),
 }));
 vi.mock("./answerQueue.js", () => ({
@@ -127,6 +130,7 @@ beforeEach(() => {
         mocks.drainSession,
         mocks.endQuizSession,
         mocks.startQuestionTimer,
+        mocks.closeQuestionWindow,
     ]) {
         mock.mockReset();
     }
@@ -371,6 +375,11 @@ describe("a verified organizer can run their quiz", () => {
 
         await handleMessage(host, { type: "quiz:end", payload: { sessionId } });
 
+        // answers stop being accepted before the buffer is drained
+        expect(mocks.closeQuestionWindow).toHaveBeenCalledWith(sessionId);
+        expect(mocks.closeQuestionWindow.mock.invocationCallOrder[0]).toBeLessThan(
+            mocks.drainSession.mock.invocationCallOrder[0],
+        );
         expect(mocks.drainSession).toHaveBeenCalledWith(sessionId);
         expect(mocks.endQuizSession).toHaveBeenCalledWith(sessionId);
         expect(mocks.broadcastToSession).toHaveBeenCalledWith(sessionId, "quiz:leaderboard", {
