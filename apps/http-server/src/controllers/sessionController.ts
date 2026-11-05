@@ -3,6 +3,7 @@ import { prisma } from "@repo/db";
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { errorResponse } from "../utils/error";
+import { parseJoinQuiz } from "../utils/quizInput";
 import { string } from "zod";
 
 /**
@@ -22,12 +23,11 @@ export const joinQuizController = async (req: Request, res: Response) => {
 
     try {
 
-        const { code, username } = req.body;
-
         // validate input
-        if (!code || !username) {
-            return errorResponse(res, 400, "Code and username are required");
-        }
+        const parsed = parseJoinQuiz(req.body);
+        if (!parsed.ok) return errorResponse(res, 400, parsed.error);
+
+        const { code, username } = parsed.data;
 
         const quiz = await prisma.quiz.findUnique({
             where: {
