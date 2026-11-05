@@ -3,14 +3,16 @@ import { errorResponse } from '../utils/error';
 import { prisma } from '@repo/db';
 import { generateCode } from '../utils/code';
 import { parseCreateQuestion } from '../utils/questionInput';
+import { parseCreateQuiz } from '../utils/quizInput';
 import { renumberQuestions } from '../utils/questionOrder';
 
 export const createQuizController = async (req: Request, res: Response) => {
     try {
 
-        const { title, description } = req.body;
+        const parsed = parseCreateQuiz(req.body);
+        if (!parsed.ok) return errorResponse(res, 400, parsed.error);
 
-        if (!title || !description) return errorResponse(res, 400, "Title and description are required");
+        const { title, description } = parsed.data;
 
         const quiz = await prisma.quiz.create({
             data: {
