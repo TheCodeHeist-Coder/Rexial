@@ -33,7 +33,7 @@ class FakeSocket {
 }
 
 function renderLive(path: string, isOrganizer: boolean) {
-    render(
+    return render(
         <MemoryRouter initialEntries={[path]}>
             <Routes>
                 <Route
@@ -69,6 +69,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
     useAuthStore.setState({ user: null, token: null });
 });
@@ -208,5 +209,31 @@ describe('LiveQuiz host controls on a dropped connection', () => {
 
         expect(sentOfType('quiz:next-question').map((m) => m.payload.questionIndex)).toEqual([1, 2]);
         expect(screen.queryByRole('alert')).toBeNull();
+    });
+});
+
+describe('LiveQuiz host start countdown', () => {
+    it('cancels the first-question send when the host leaves', async () => {
+        const view = renderLive('/live/session-1', true);
+        await firstJoinMessage();
+        vi.useFakeTimers();
+        deliver('quiz:start', {});
+
+        view.unmount();
+        act(() => vi.advanceTimersByTime(3000));
+
+        expect(sentOfType('quiz:next-question')).toHaveLength(0);
+    });
+
+    it('does not send the first question to a closed socket', async () => {
+        renderLive('/live/session-1', true);
+        await firstJoinMessage();
+        vi.useFakeTimers();
+        deliver('quiz:start', {});
+        sockets[0]!.readyState = 3;
+
+        act(() => vi.advanceTimersByTime(3000));
+
+        expect(sentOfType('quiz:next-question')).toHaveLength(0);
     });
 });
