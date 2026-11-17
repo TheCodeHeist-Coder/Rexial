@@ -174,6 +174,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
     let isMounted = true;
     let reconnectAttempts = 0;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let startTimer: ReturnType<typeof setTimeout> | null = null;
     // Lobby-only reconciliation for the host; cleared once the quiz starts.
     let refreshTimer: ReturnType<typeof setInterval> | null = null;
     // Set when we close a socket ourselves (unmount, or replacing a stale
@@ -284,8 +285,12 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
               refreshTimer = null;
             }
             setGameState(GameState.STARTING);
-            setTimeout(() => {
-              if (isOrganizer) socket?.send(JSON.stringify({ type: 'quiz:next-question', payload: { sessionId, questionIndex: 0 } }));
+            if (startTimer) clearTimeout(startTimer);
+            startTimer = setTimeout(() => {
+              startTimer = null;
+              if (isMounted && isOrganizer && socket?.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ type: 'quiz:next-question', payload: { sessionId, questionIndex: 0 } }));
+              }
             }, 3000);
             break;
           case 'quiz:question':
@@ -403,6 +408,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
       deliberateClose = true;
       clearTimeout(timeoutId);
       if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (startTimer) clearTimeout(startTimer);
       if (refreshTimer) clearInterval(refreshTimer);
       if (socket) {
         // Drop the handler first: closing a socket fires onclose, which would
