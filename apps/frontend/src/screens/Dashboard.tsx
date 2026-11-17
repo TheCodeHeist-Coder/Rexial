@@ -196,10 +196,34 @@ function Dashboard() {
                         {q._count?.questions || 0} Qs
                       </div>
                       <div className="flex items-center gap-1 text-green-600 font-semibold tracking-wide">
-                        <BiPlay className="w-5 h-5" /> {q._count?.sessions || 0}{" "}
+                        <BiPlay className="w-5 h-5" /> {q._count?.quizSessions || 0}{" "}
                         Sessions
                       </div>
                     </div>
+
+                    {q.podium?.length > 0 && (
+                      <div className="mt-5 border-t border-white/10 pt-4">
+                        <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-pink-500">
+                          Top players
+                        </h4>
+                        <ol className="space-y-1">
+                          {q.podium.map((player: any, index: number) => (
+                            <li
+                              key={player.id}
+                              className="flex items-center justify-between gap-3 text-sm text-zinc-300"
+                            >
+                              <span className="truncate">
+                                <span className="mr-2 text-zinc-500">#{index + 1}</span>
+                                {player.username}
+                              </span>
+                              <span className="shrink-0 font-semibold text-pink-400">
+                                {player.score} pts
+                              </span>
+                            </li>
+                          ))}
+                        </ol>
+                      </div>
+                    )}
                   </div>
                 </Link>
               ))}

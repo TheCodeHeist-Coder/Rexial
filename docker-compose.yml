@@ -8,6 +8,9 @@ services:
       - "5173:5173"
     volumes:
       - .:/app
+      - rexial_node_modules:/app/node_modules
+      - rexial_frontend_modules:/app/apps/frontend/node_modules
+      - rexial_db_modules:/app/packages/db/node_modules
     depends_on:
       - backend
       - genai
@@ -21,13 +24,16 @@ services:
       - "8080:8080"
     volumes:
       - .:/app
+      - rexial_node_modules:/app/node_modules
+      - rexial_ws_modules:/app/apps/ws-server/node_modules
+      - rexial_db_modules:/app/packages/db/node_modules
     # Share the HTTP server's signing secret so organizer tokens verify here.
     env_file:
       - path: apps/http-server/.env
         required: false
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/Qtrive
-      - REDIS_HOST=redis    
+      - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=thisistheredisPassword
     command: sh -c "pnpm --filter @repo/db run db:generate && pnpm run dev"
@@ -46,6 +52,9 @@ services:
       - "4000:4000"
     volumes:
       - .:/app
+      - rexial_node_modules:/app/node_modules
+      - rexial_http_modules:/app/apps/http-server/node_modules
+      - rexial_db_modules:/app/packages/db/node_modules
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/Qtrive
     command: sh -c " pnpm --filter @repo/db run db:generate && npx wait-on
@@ -71,7 +80,13 @@ services:
       - UPLOAD_DIR=/app/apps/genAI/uploads
       - ALLOWED_ORIGINS=*
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=4)"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=4)",
+        ]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -88,9 +103,9 @@ services:
     volumes:
       - ./apps/streaming/livekit/livekit.dev.yaml:/etc/livekit.yaml:ro
     ports:
-      - "7880:7880"         # signaling
-      - "7881:7881"         # media over TCP (fallback)
-      - "7882:7882/udp"     # media over UDP
+      - "7880:7880" # signaling
+      - "7881:7881" # media over TCP (fallback)
+      - "7882:7882/udp" # media over UDP
 
   streaming:
     build:
@@ -125,7 +140,7 @@ services:
     volumes:
       - Qtrive_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres -d Qtrive" ]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d Qtrive"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -153,3 +168,9 @@ volumes:
   Qtrive_redis_data:
   Qtrive_genai_uploads:
   Qtrive_genai_models:
+
+  rexial_node_modules:
+  rexial_frontend_modules:
+  rexial_http_modules:
+  rexial_ws_modules:
+  rexial_db_modules:

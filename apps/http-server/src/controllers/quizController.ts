@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { errorResponse } from '../utils/error';
-import { prisma } from '@repo/db';
+import { getRankedParticipants, prisma } from '@repo/db';
 import { generateCode } from '../utils/code';
 import { parseCreateQuestion } from '../utils/questionInput';
 import { parseCreateQuiz } from '../utils/quizInput';
@@ -57,6 +57,48 @@ export const getAllQuizesController = async (req: Request, res: Response) => {
             orderBy: { createdAt: 'desc' }
         });
 
+        const completedQuizIds = organizedQuizes
+            .filter((quiz) => quiz.status === 'COMPLETED')
+            .map((quiz) => quiz.id);
+
+        const completedSessions = completedQuizIds.length > 0
+            ? await prisma.quizSession.findMany({
+                where: {
+                    quizId: { in: completedQuizIds },
+                    status: 'COMPLETED'
+                },
+                select: { id: true, quizId: true },
+                orderBy: [
+                    { endedAt: { sort: 'desc', nulls: 'last' } },
+                    { createdAt: 'desc' },
+                    { id: 'desc' }
+                ]
+            })
+            : [];
+
+        const latestSessionByQuiz = new Map<string, string>();
+        for (const session of completedSessions) {
+            if (!latestSessionByQuiz.has(session.quizId)) {
+                latestSessionByQuiz.set(session.quizId, session.id);
+            }
+        }
+
+        const rankedParticipants = latestSessionByQuiz.size > 0
+            ? await getRankedParticipants([...latestSessionByQuiz.values()])
+            : [];
+        const podiumBySession = new Map<string, typeof rankedParticipants>();
+        for (const participant of rankedParticipants) {
+            const podium = podiumBySession.get(participant.sessionId) ?? [];
+            if (podium.length < 3) {
+                podium.push(participant);
+                podiumBySession.set(participant.sessionId, podium);
+            }
+        }
+
+        const organizedQuizesWithPodium = organizedQuizes.map((quiz) => ({
+            ...quiz,
+            podium: podiumBySession.get(latestSessionByQuiz.get(quiz.id) ?? '') ?? []
+        }));
 
         const participatedQuizes = await prisma.quizSession.findMany({
             where: {
@@ -112,7 +154,7 @@ export const getAllQuizesController = async (req: Request, res: Response) => {
 
 
         return res.status(200).json({
-            organizedQuizes,
+            organizedQuizes: organizedQuizesWithPodium,
             participated: participatedWithRank
         })
 

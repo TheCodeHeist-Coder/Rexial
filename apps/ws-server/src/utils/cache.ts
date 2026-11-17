@@ -1,5 +1,5 @@
 import { cache } from "../redis.js";
-import { prisma } from "@repo/db";
+import { getRankedParticipants, prisma } from "@repo/db";
 
 
 const TTL = {
@@ -158,17 +158,7 @@ export async function getCachedLeaderboard(sessionId: string) {
     return readThrough(
         Keys.leaderboard(sessionId),
         TTL.LEADERBOARD,
-        () => prisma.$queryRaw`
-            SELECT p.id,
-                   p.username,
-                   p.score,
-                   COALESCE(SUM(pa."timeMs"), 0)::int AS "totalTimeMs"
-            FROM "Participant" p
-            LEFT JOIN "ParticipantAnswer" pa ON pa."participantId" = p.id
-            WHERE p."sessionId" = ${sessionId}
-            GROUP BY p.id, p.username, p.score
-            ORDER BY p.score DESC, "totalTimeMs" ASC, p.username ASC
-        `,
+        () => getRankedParticipants([sessionId]),
     );
 }
 
