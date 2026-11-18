@@ -8,6 +8,7 @@ import BgBoss from "../components/BgBoss";
 import { FaSpinner } from "react-icons/fa6";
 import { MdViewInAr } from "react-icons/md";
 import { participantTokenKey, streamingEnabled } from "../services/streamApi";
+import { downloadLeaderboardCsv } from "../utils/leaderboardCsv";
 
 // The LiveKit client is most of a megabyte; only a live video quiz loads it.
 const LiveStage = lazy(() => import("../components/live/LiveStage"));
@@ -66,6 +67,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
   const [joinCode, setJoinCode] = useState('');
   // Set by the server on join: the host opened this lobby with live video.
   const [liveVideo, setLiveVideo] = useState(false);
+  const [startError, setStartError] = useState('');
 
 
 
@@ -267,6 +269,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
             // The server refused a message, for example when this login is not
             // an organizer of the quiz.
             console.error('[ws]', payload?.code, payload?.message);
+            if (payload?.code === 'NO_QUESTIONS') setStartError(payload.message);
             break;
           case 'participants:sync':
             setParticipants(payload.participants);
@@ -561,6 +564,9 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
                     >
                       Start Game
                     </button>
+                    {startError && (
+                      <p role="alert" className="mt-3 text-sm text-red-400">{startError}</p>
+                    )}
                     {notSentNotice('the game was not started.',
                       'the game can be started once the connection is back.')}
                   </>
@@ -1080,10 +1086,20 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
 
               </div>
 
+              {isOrganizer && sortedLeaderboard.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => downloadLeaderboardCsv(sortedLeaderboard, sessionId ?? '')}
+                  className="mt-10 px-6 py-2 text-pink-300 font-secondary tracking-wide rounded-full border border-pink-500/50 hover:bg-pink-500/10 transition duration-200 cursor-pointer"
+                >
+                  Download CSV
+                </button>
+              )}
+
               <Link
                 to={isOrganizer ? "/dashboard" : "/join"}
                 state={isOrganizer ? undefined : { username }}
-                className="mt-16 px-8 py-3 text-black font-bold font-secondary tracking-wide rounded-full bg-linear-to-b from-pink-500 to-pink-800/40 hover:to-pink-800/30 transition duration-200 shadow-sm active:shadow-none active:scale-95 shadow-pink-700"
+                className="mt-6 px-8 py-3 text-black font-bold font-secondary tracking-wide rounded-full bg-linear-to-b from-pink-500 to-pink-800/40 hover:to-pink-800/30 transition duration-200 shadow-sm active:shadow-none active:scale-95 shadow-pink-700"
               >
                 {isOrganizer ? "Back to Dashboard" : "Join Another Quiz"}
               </Link>
