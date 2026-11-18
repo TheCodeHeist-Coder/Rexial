@@ -237,3 +237,38 @@ describe('LiveQuiz host start countdown', () => {
         expect(sentOfType('quiz:next-question')).toHaveLength(0);
     });
 });
+
+describe('LiveQuiz final leaderboard', () => {
+    function rankedPlayers(count: number) {
+        return Array.from({ length: count }, (_, index) => ({
+            id: `participant-${index + 1}`,
+            username: `Player ${index + 1}`,
+            score: count - index,
+            totalTimeMs: index,
+        }));
+    }
+
+    it('shows the full-list rank and score for a participant outside the top 30', async () => {
+        localStorage.setItem('rexial:participant:session-1', 'participant-35');
+        renderLive('/live/session-1', false);
+        await firstJoinMessage();
+        deliver('quiz:leaderboard', { leaderboard: rankedPlayers(35) });
+        deliver('quiz:ended', {});
+
+        expect(await screen.findByText('Showing the top 30 of 35 players')).toBeInTheDocument();
+        expect(screen.getByText('#35')).toBeInTheDocument();
+        expect(screen.getByText('You')).toBeInTheDocument();
+        expect(screen.getByText('1 pts')).toBeInTheDocument();
+    });
+
+    it('highlights a participant whose row is already in the visible top 30', async () => {
+        localStorage.setItem('rexial:participant:session-1', 'participant-17');
+        renderLive('/live/session-1', false);
+        await firstJoinMessage();
+        deliver('quiz:leaderboard', { leaderboard: rankedPlayers(35) });
+        deliver('quiz:ended', {});
+
+        const player = await screen.findByText('Player 17');
+        expect(player.closest('div[class*="ring-2"]')).not.toBeNull();
+    });
+});
