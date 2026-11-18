@@ -136,6 +136,7 @@ beforeEach(() => {
     }
     mocks.getCachedParticipants.mockResolvedValue([]);
     mocks.getCachedSession.mockResolvedValue({ status: "WAITING", quiz: { joinCode: "ABC123" } });
+    mocks.getCachedQuestions.mockResolvedValue([{ id: "q-1", answers: [] }]);
     mocks.prisma.quizSession.updateMany.mockResolvedValue({ count: 1 });
 });
 
@@ -323,6 +324,17 @@ describe("a verified organizer can run their quiz", () => {
         );
         expect(mocks.broadcastToSession).toHaveBeenCalledWith(sessionId, "quiz:start");
         expect(errorCodes(host)).toEqual([]);
+    });
+
+    it("refuses to start a quiz that has no questions", async () => {
+        const host = await joinedHost();
+        mocks.getCachedQuestions.mockResolvedValue([]);
+
+        await handleMessage(host, { type: "quiz:start", payload: { sessionId } });
+
+        expect(errorCodes(host)).toEqual(["NO_QUESTIONS"]);
+        expect(mocks.prisma.quizSession.updateMany).not.toHaveBeenCalled();
+        expect(mocks.broadcastToSession).not.toHaveBeenCalled();
     });
 
     it("uses the joined session when the message leaves it out", async () => {

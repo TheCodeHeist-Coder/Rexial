@@ -66,6 +66,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
   const [joinCode, setJoinCode] = useState('');
   // Set by the server on join: the host opened this lobby with live video.
   const [liveVideo, setLiveVideo] = useState(false);
+  const [startError, setStartError] = useState('');
 
 
 
@@ -267,6 +268,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
             // The server refused a message, for example when this login is not
             // an organizer of the quiz.
             console.error('[ws]', payload?.code, payload?.message);
+            if (payload?.code === 'NO_QUESTIONS') setStartError(payload.message);
             break;
           case 'participants:sync':
             setParticipants(payload.participants);
@@ -561,6 +563,9 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
                     >
                       Start Game
                     </button>
+                    {startError && (
+                      <p role="alert" className="mt-3 text-sm text-red-400">{startError}</p>
+                    )}
                     {notSentNotice('the game was not started.',
                       'the game can be started once the connection is back.')}
                   </>

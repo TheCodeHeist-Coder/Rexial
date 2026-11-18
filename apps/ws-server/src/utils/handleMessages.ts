@@ -353,6 +353,13 @@ export const handleMessage = async (client: Client, data: any) => {
         case 'quiz:start': {
             const sessionId = authorizeOrganizerAction(client, payload);
             if (!sessionId) break;
+            // Starting a quiz with nothing to ask only walks the room through
+            // "get ready" and then ends the session as COMPLETED.
+            const startQuestions = await getCachedQuestions(sessionId);
+            if (!startQuestions || startQuestions.length === 0) {
+                sendError(client, 'NO_QUESTIONS', 'Add at least one question before starting the quiz.');
+                break;
+            }
             // A session the super-admin cancelled (or one that already
             // ended) must not be revived by a host coming back to the lobby.
             const { count } = await prisma.quizSession.updateMany({
