@@ -1010,6 +1010,12 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
                 </div>
                 {/* Rest of the performers till top-30 */}
                 <div className="space-y-5">
+                  {hiddenCount > 0 && (
+                    <p className="text-center text-zinc-500 text-sm sm:text-base font-secondary tracking-wider py-2">
+                      Showing the top {FINAL_LIMIT} of {sortedLeaderboard.length} players
+                    </p>
+                  )}
+
                   {others.map((player, idx) => (
                     <div
                       key={player.id}
@@ -1043,44 +1049,29 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
                       standing rather than ending the quiz on other people's
                       names. */}
                   {showMyRank && (
-                    <>
-                      {hiddenCount > 0 && (
-                        <p className="text-center text-zinc-500 text-sm sm:text-base font-secondary tracking-wider py-2">
-                          + {hiddenCount} more {hiddenCount === 1 ? 'player' : 'players'}
-                        </p>
-                      )}
+                    <div className="flex justify-between items-center px-4 sm:py-5 py-3 rounded-2xl border-2 border-pink-500/60 bg-pink-600/15">
+                      <div className="flex items-center gap-3 sm:gap-4">
+                        <span className="text-lg sm:text-2xl font-black text-pink-400 tracking-tighter">
+                          #{myRank}
+                        </span>
 
-                      <div className="flex justify-between items-center px-4 sm:py-5 py-3 rounded-2xl border-2 border-pink-500/60 bg-pink-600/15">
-                        <div className="flex items-center gap-3 sm:gap-4">
-                          <span className="text-lg sm:text-2xl font-black text-pink-400 tracking-tighter">
-                            #{myRank}
-                          </span>
-
-                          <div className={`sm:w-12 sm:h-12 h-10 w-10 rounded-xl bg-linear-to-br ${getAvatarColor(me!.id)} p-0.5 shadow overflow-hidden`}>
-                            <img
-                              src={getAvatar(me!.id)}
-                              alt={me!.username}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-
-                          <span className="text-md sm:text-xl font-secondary font-extrabold tracking-wider text-pink-400">
-                            You
-                          </span>
+                        <div className={`sm:w-12 sm:h-12 h-10 w-10 rounded-xl bg-linear-to-br ${getAvatarColor(me!.id)} p-0.5 shadow overflow-hidden`}>
+                          <img
+                            src={getAvatar(me!.id)}
+                            alt={me!.username}
+                            className="w-full h-full object-cover"
+                          />
                         </div>
 
-                        <span className="text-md sm:text-2xl font-special tracking-wider text-pink-400">
-                          {me!.score} pts
+                        <span className="text-md sm:text-xl font-secondary font-extrabold tracking-wider text-pink-400">
+                          You
                         </span>
                       </div>
-                    </>
-                  )}
 
-                  {/* Nothing pinned below, so say the list was cut. */}
-                  {!showMyRank && hiddenCount > 0 && (
-                    <p className="text-center text-zinc-500 text-sm sm:text-base font-secondary tracking-wider py-2">
-                      + {hiddenCount} more {hiddenCount === 1 ? 'player' : 'players'}
-                    </p>
+                      <span className="text-md sm:text-2xl font-special tracking-wider text-pink-400">
+                        {me!.score} pts
+                      </span>
+                    </div>
                   )}
                 </div>
 
