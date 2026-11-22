@@ -73,6 +73,9 @@ services:
         restart: always
         env_file:
             - .env.prod
+        environment:
+            - METRICS_HOST=0.0.0.0
+            - METRICS_PORT=9090
         networks:
             - rexial-network
         extra_hosts:

@@ -221,6 +221,29 @@ points = isCorrect ? Math.max(1, Math.ceil(10 * (1 - elapsedMs / limitMs))) : 0
 reached the server. A correct answer scores 10 down to 1 across the time
 limit. Wrong answers score nothing.
 
+#### ws-server metrics
+
+The ws-server serves Prometheus text format at `GET /metrics` on a separate
+listener (port `9090` by default, configurable with `METRICS_PORT`). It binds
+to `127.0.0.1` by default (`METRICS_HOST`); Docker Compose binds it to the
+container network, but does not publish that port in production. In the
+development Compose setup it is published only on host loopback:
+`http://127.0.0.1:9090/metrics`. In production, scrape
+`http://ws-server:9090/metrics` from an authorized container on the private
+Compose network; do not proxy or publish this listener publicly.
+
+Exposed metrics are aggregate, with no session or participant labels:
+`rexial_ws_connections_open`, `rexial_ws_sessions_in_progress`,
+`rexial_ws_answers_submitted_total`, `rexial_ws_answers_persisted_total`,
+`rexial_ws_answer_queue_flush_failures_total`,
+`rexial_ws_answer_queue_transaction_errors_total`, and the histogram
+`rexial_ws_question_close_latency_seconds`. Submitted counts answers accepted
+into the in-memory queue; persisted counts rows returned as inserted by the
+database. Their difference is the current process-lifetime gap, and a rising
+flush-failure or transaction-error counter indicates why it is growing.
+Question-close latency covers timer-expired questions, from the timer deadline
+to the results broadcast.
+
 ### genAI — AI question generation
 
 FastAPI, isolated from the Node services so the Python AI dependency tree
