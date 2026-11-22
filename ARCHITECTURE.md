@@ -10,18 +10,19 @@ running, then come back for the *why*.
 
 ## Contents
 
--[The short version](#the-short-version)
--[System overview](#system-overview)
--[Why a monorepo](#why-a-monorepo)
--[The services](#the-services)
--[Data model](#data-model)
--[Flow 1: Creating a quiz](#flow-1-creating-a-quiz)
--[Flow 2: AI question generation](#flow-2-ai-question-generation)
--[Flow 3: Running a live quiz](#flow-3-running-a-live-quiz)
--[Caching and scale](#caching-and-scale)
--[Deployment topology](#deployment-topology)
--[Design decisions](#design-decisions)
--[Known limitations](#known-limitations)
+- [The short version](#the-short-version)
+- [System overview](#system-overview)
+- [Why a monorepo](#why-a-monorepo)
+- [The services](#the-services)
+- [Data model](#data-model)
+- [Flow 1: Creating a quiz](#flow-1-creating-a-quiz)
+- [Flow 2: AI question generation](#flow-2-ai-question-generation)
+- [Flow 3: Running a live quiz](#flow-3-running-a-live-quiz)
+- [Flow 4: Running a quiz on camera](#flow-4-running-a-quiz-on-camera)
+- [Caching and scale](#caching-and-scale)
+- [Deployment topology](#deployment-topology)
+- [Design decisions](#design-decisions)
+- [Known limitations](#known-limitations)
 
 ---
 
@@ -48,42 +49,91 @@ Backed by **PostgreSQL** (source of truth) and **Redis** (hot cache + pub/sub).
 
 ## System overview
 
+Everything a browser touches goes through one of these services. Two of them
+— `streaming` and the LiveKit SFU behind it — only exist when live video is
+switched on, which is why they are drawn apart from the rest.
+
+```mermaid
+flowchart TB
+    subgraph client["Browser"]
+        SPA["React SPA<br/><i>frontend</i>"]
+    end
+
+    subgraph edge["Edge"]
+        NGINX["nginx-proxy-manager<br/>TLS · routing · :80 :443"]
+    end
+
+    subgraph core["Core services"]
+        HTTP["<b>http-server</b><br/>Express :4000<br/><br/>auth · quiz CRUD<br/>invites · session setup"]
+        WS["<b>ws-server</b><br/>ws :8080<br/><br/>live gameplay · timers<br/>scoring · leaderboard"]
+        AI["<b>genAI</b><br/>FastAPI :8000<br/><br/>PDF → questions<br/>RAG Q&amp;A · chat"]
+    end
+
+    subgraph video["Live video — optional, off by default"]
+        STREAM["<b>streaming</b><br/>Express :7000<br/><br/>room tokens<br/>moderation"]
+        LK["<b>LiveKit</b> SFU<br/>:7880 signal<br/>:7881 TCP · :7882 UDP"]
+    end
+
+    subgraph data["State"]
+        PG[("PostgreSQL<br/><i>source of truth</i>")]
+        RD[("Redis<br/><i>cache + pub/sub</i>")]
+    end
+
+    LLM["External LLM APIs<br/>Groq · Gemini · Tavily"]
+
+    SPA --> NGINX
+    NGINX -->|REST · JWT| HTTP
+    NGINX -->|WebSocket| WS
+    NGINX -->|multipart PDF| AI
+    NGINX -.->|REST| STREAM
+    NGINX -.->|WSS signal| LK
+
+    SPA ===|"WebRTC media<br/>(never proxied)"| LK
+
+    HTTP --> PG
+    WS --> PG
+    WS --> RD
+    HTTP --> RD
+    STREAM -.-> PG
+    STREAM -.->|server API| LK
+    AI --> LLM
+
+    classDef optional stroke-dasharray: 6 4
+    class STREAM,LK optional
 ```
-                          ┌──────────────────────────┐
-                          │        Browser           │
-                          │   React SPA (frontend)   │
-                          └────┬──────────┬──────┬───┘
-                               │          │      │
-              REST (axios)     │    WS    │      │  multipart
-              JWT in header    │  (live)  │      │  (PDF upload)
-                               │          │      │
-               ┌───────────────▼──┐  ┌────▼──────▼────┐  ┌──────────────┐
-               │  http-server     │  │   ws-server    │  │    genAI     │
-               │  Express :4000   │  │  ws :8080      │  │ FastAPI :8000│
-               │                  │  │                │  │              │
-               │ • auth (JWT)     │  │ • live session │  │ • PDF -> quiz│
-               │ • quiz CRUD      │  │ • timers       │  │ • RAG Q&A    │
-               │ • invites/email  │  │ • scoring      │  │   over PDFs  │
-               │ • start session  │  │ • leaderboard  │  │ • chat       │
-               └────────┬─────────┘  └───┬────────┬───┘  └──────┬───────┘
-                        │                │        │             │
-                        │  Prisma        │        │ cache       │ HTTPS
-                        │                │        │ pub/sub     │
-                   ┌────▼────────────────▼──┐  ┌──▼──────────┐  │
-                   │      PostgreSQL        │  │    Redis    │  │
-                   │   (source of truth)    │  │ (hot state) │  │
-                   └────────────────────────┘  └─────────────┘  │
-                                                                │
-                                                     ┌──────────▼─────────┐
-                                                     │  External LLM APIs │
-                                                     │  Groq · Gemini ·   │
-                                                     │  Tavily            │
-                                                     └────────────────────┘
-```
+
+Three things this diagram is trying to make obvious.
+
+**Media does not go through nginx.** WebRTC cannot be reverse-proxied, so the
+browser talks to LiveKit directly on 7881/7882 while every other connection
+terminates at nginx. That one fact drives most of the live-video deployment
+steps.
+
+**`streaming` is not in the media path.** It issues tokens and relays the
+host's moderation decisions through the LiveKit server API. Even at 300
+cameras it stays a small Express app, because the video never touches it.
 
 **The key split:** `http-server` owns everything *before* and *after* a quiz
 runs. `ws-server` owns the quiz *while* it is running. They share a database
 but never call each other — the handoff happens through the `QuizSession` row.
+
+### The admin plane
+
+Two more apps sit outside all of this and are deployed separately — not in
+Docker, not in CI/CD:
+
+```mermaid
+flowchart LR
+    ADMIN["<b>admin</b><br/>React :5174<br/>Vercel"] --> ASRV["<b>admin-server</b><br/>Express :5000<br/>Render"]
+    ASRV --> PG[("PostgreSQL<br/><i>same database</i>")]
+
+    style ADMIN fill:none
+    style ASRV fill:none
+```
+
+`admin-server` reads the same Postgres that `http-server` writes. It is
+read-only platform analytics for one super-admin: users, sessions, quizzes and
+API traffic. See [apps/admin-server/README.md](apps/admin-server/README.md).
 
 ---
 
@@ -97,9 +147,12 @@ Rexial/
 │   ├── frontend/      React SPA
 │   ├── http-server/   Express REST API
 │   ├── ws-server/     WebSocket server
-│   └── genAI/         Python FastAPI service
+│   ├── genAI/         Python FastAPI service
+│   ├── streaming/     LiveKit room tokens + moderation   (optional)
+│   ├── admin/         Super-admin React panel            (deployed apart)
+│   └── admin-server/  Super-admin API                    (deployed apart)
 ├── packages/
-│   ├── db/            Prisma schema + generated client  (@repo/db)
+│   ├── db/            Prisma schema + generated client   (@repo/db)
 │   ├── ui/            Shared components (scaffolded, not yet used)
 │   ├── eslint-config/
 │   └── typescript-config/
@@ -112,7 +165,7 @@ workspace package, `@repo/db` is imported directly and a schema change surfaces
 as a type error in both servers immediately.
 
 `genAI` is in the workspace too, but only as a thin shim — its `package.json`
-scripts shell out to Python so `pnpm dev` can start all four services at once.
+scripts shell out to Python so `pnpm dev` can start every service at once.
 Its real dependencies live in `requirements.txt`.
 
 ---
@@ -413,12 +466,17 @@ Organizer          ws-server          Redis        PostgreSQL      Participants
     │                  │                 │              │               │
     │                  │◄───────────────────────────────────────────────┤ submit
     │                  │ score it        │              │               │  answer
-    │                  │ points =        │              │               │
-    │                  │  max(10,1000-ms)│              │               │
-    │                  ├────────────────────────────────►│ ParticipantAnswer
-    │                  ├────────────────►│ leaderboard  │               │
+    │                  │ points = 10..1  │              │               │
+    │                  │  scaled by speed│              │               │
+    │                  │ enqueueAnswer() │              │               │
+    │                  ├────────────────►│ buffer       │               │
+    │                  │                 │              │               │
+    │                  │ ...every 250ms or 200 answers: │               │
+    │                  ├────────────────────────────────►│ createMany
     │                  │                 │              │               │
     │                  │ timer expires   │              │               │
+    │                  │ flushSession()  │              │               │
+    │                  ├────────────────────────────────►│ (drain buffer)
     │◄─────────────────┤ quiz:question-results ────────────────────────►│
     │◄─────────────────┤ quiz:leaderboard ─────────────────────────────►│
     │                  │                 │              │               │
@@ -429,6 +487,77 @@ Organizer          ws-server          Redis        PostgreSQL      Participants
 
 The organizer drives the pace — questions advance on `quiz:next-question`, not
 automatically. Timers live in `timeManager.ts`, keyed per session.
+
+---
+
+## Flow 4: Running a quiz on camera
+
+Live video runs *alongside* the quiz, not inside it. The ws-server knows
+nothing about cameras, and the streaming service knows nothing about scores.
+The only thing joining them is `QuizSession.liveVideo` and the session id used
+as the room name.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant H as Host
+    participant FE as frontend
+    participant API as http-server
+    participant ST as streaming
+    participant LK as LiveKit SFU
+    participant P as Player
+
+    H->>FE: open lobby with video on
+    FE->>API: start-session { liveVideo: true }
+    API->>API: cap joins at 300 under a row lock
+    API-->>FE: sessionId
+
+    H->>FE: enter the call
+    FE->>ST: POST /sessions/:id/token
+    ST->>ST: verify host JWT is an accepted organizer
+    ST->>LK: create room (auto_create off, limit set)
+    ST-->>FE: publish token
+    FE->>LK: connect — camera, mic, screen
+
+    P->>FE: join by code
+    FE->>API: POST /session/join
+    API-->>FE: participant token
+    FE->>ST: POST /sessions/:id/token
+    ST->>ST: verify the signed participant token
+    ST-->>FE: watch-and-listen token
+    FE->>LK: connect — subscribe only
+
+    Note over P,LK: quiz plays out over ws-server, in parallel
+
+    P->>ST: POST /sessions/:id/hand
+    ST->>LK: set participant attribute
+    LK-->>H: raised hand appears in the host's list
+    H->>ST: PUT /speakers/:participantId
+    ST->>ST: refuse past 3 simultaneous speakers
+    ST->>LK: grant publish permission
+    LK-->>P: microphone unlocked
+
+    Note over ST,LK: roomReaper polls every 10s
+    ST->>LK: close room 30s after the last host leaves
+```
+
+**Why the player's own id proves nothing.** Participant ids are visible to
+everyone in the lobby and on the leaderboard. A request carrying only an id
+could be forged by any viewer, so `streaming` accepts only the *signed*
+participant token that `http-server` issued at join. The same rule is why
+hosts must present their login JWT and be an accepted `QuizOrganizer`.
+
+**Why rooms outlive the quiz.** The final leaderboard is when a host says a
+few words about the results, so the call carries on after `quiz:ended`. The
+reaper closes a finished quiz's room 30 seconds after the last host leaves,
+when the host ends it explicitly, or an hour after the end — whichever comes
+first. A *running* quiz's room is never reaped, so a host reloading mid-quiz
+does not hang up on everyone.
+
+**Limits worth knowing:** 300 participants per room, 20 extra host seats, and
+at most 3 players holding the floor at once. The 300 is enforced twice — by
+`http-server` when joining, and by the room's own participant limit as a
+backstop.
 
 ---
 
@@ -491,41 +620,94 @@ instance, but nothing in the code assumes that.
 
 ## Deployment topology
 
+One VPS. Docker Compose runs the services; **PostgreSQL and Redis are not in
+Docker** — they are installed on the host with `apt` and reached through
+`host.docker.internal`, which Compose maps to the bridge gateway. There is no
+`db` service to `depends_on`.
+
+```mermaid
+flowchart TB
+    NET(["Internet"])
+
+    subgraph vps["VPS"]
+        subgraph dockernet["docker bridge · rexial-network"]
+            NGINX["<b>nginx-proxy-manager</b><br/>:80 :443 public<br/>:81 admin UI (firewall!)"]
+            FE["frontend<br/><i>nginx, static</i>"]
+            BE["backend<br/>:4000"]
+            WSS["ws-server<br/>:8080"]
+            GA["genai<br/>:8000"]
+            ST["streaming<br/>:7000"]
+            LK["livekit<br/>:7880 signal"]
+        end
+
+        subgraph host["host — installed via apt"]
+            PG[("PostgreSQL")]
+            RD[("Redis")]
+        end
+    end
+
+    NET -->|443| NGINX
+    NET ==>|"7881 TCP · 7882 UDP<br/>published directly"| LK
+
+    NGINX --> FE
+    NGINX --> BE
+    NGINX --> WSS
+    NGINX --> GA
+    NGINX -.-> ST
+    NGINX -.->|signal only| LK
+
+    BE -->|host.docker.internal| PG
+    WSS --> PG
+    WSS --> RD
+    BE --> RD
+    ST -.-> PG
+    ST -.-> LK
+
+    classDef optional stroke-dasharray: 6 4
+    class ST,LK optional
 ```
-                    Internet
-                       │
-                       ▼
-          ┌────────────────────────┐
-          │  nginx-proxy-manager   │  :80 :443 (TLS, routing)
-          │                        │  :81      (admin UI)
-          └──┬─────┬─────┬─────┬───┘
-             │     │     │     │
-    ┌────────▼┐ ┌──▼───┐ ┌▼─────┐ ┌▼──────┐
-    │frontend │ │backend│ │ ws   │ │ genai │
-    │ (nginx) │ │ :4000 │ │:8080 │ │ :8000 │
-    └─────────┘ └───┬───┘ └──┬───┘ └───────┘
-                    │        │
-              ┌─────▼────┐ ┌─▼──────┐
-              │ postgres │ │ redis  │
-              │ (volume) │ │(volume)│
-              └──────────┘ └────────┘
 
-         all on the private `rexial-network` bridge
+Only nginx and the two LiveKit media ports are exposed. Everything else is
+reachable solely inside the Docker network.
+
+| Published port | Service | Why it cannot hide behind nginx |
+|---|---|---|
+| 80 / 443 | nginx | The entry point itself |
+| 81 | nginx admin UI | **Firewall this to trusted IPs** |
+| 7881 | LiveKit (TCP) | WebRTC media; fallback for UDP-blocked networks |
+| 7882 | LiveKit (UDP) | WebRTC media; the normal path |
+
+> **Warning:** port **81** is the nginx-proxy-manager admin UI. Anyone who
+> reaches it can re-route your traffic.
+
+### Turning live video on
+
+`streaming` and `livekit` sit behind a Compose profile, so a normal deploy
+never starts them:
+
+```bash
+# in the deploy directory's .env
+COMPOSE_PROFILES=streaming
+LIVEKIT_KEYS=<key>: <secret>
 ```
 
-Only nginx is exposed. Everything else is reachable only inside the Docker
-network.
+Without `VITE_STREAMING_URL` the frontend never offers video and never loads
+the LiveKit client, so the feature is genuinely absent rather than merely
+hidden. Full steps: [apps/streaming/README.md](apps/streaming/README.md).
 
-> **Warning:** Port **81** is the nginx-proxy-manager admin UI. It is published on the
->host, so it should be firewalled to trusted IPs — anyone who reaches it can
->re-route your traffic.
+LiveKit deliberately gets **only** `LIVEKIT_KEYS` from the environment, never
+`.env.prod` — it also reads `REDIS_HOST`, and seeing the backend's Redis there
+it switches to multi-node mode and fails to start.
 
-Images are built by GitHub Actions and tagged `:latest` **and** `:<commit-sha>`;
-the deploy pins the SHA so rollback is exact. See
+### Images and migrations
+
+Images are built by GitHub Actions and tagged `:latest` **and**
+`:<commit-sha>`; the deploy pins the SHA so rollback is exact. CD only runs
+after CI has passed for that same commit. See
 [.github/CI-CD.md](.github/CI-CD.md).
 
-Migrations are applied by the `backend` container on startup, not by the deploy
-job:
+Migrations are applied by the `backend` container on startup, not by the
+deploy job:
 
 ```
 db:generate:prod && db:migrate && start
@@ -570,9 +752,8 @@ Honest list of what is not solved yet.
 | **Join codes** | Generation has a race condition — two concurrent requests can collide (tracked in [issues.md](issues.md) #1) |
 | **AI vector store** | `InMemoryVectorStore` is rebuilt per request; no caching, so the same PDF is re-embedded every time (#5) |
 | **AI cost** | No rate limiting or per-user quota on generation endpoints |
-| **Reconnection** | A participant who drops mid-quiz rejoins the lobby, but in-flight question state is not restored |
 | **Deploys** | `docker compose up -d` recreates containers — brief downtime, no rolling update |
 | **Environments** | No staging; `main` deploys straight to production |
-| **Tests** | No automated test suite. CI covers lint, types, builds and migrations, but not behaviour |
+| **Test coverage** | ~29 test files across five services run in CI, but coverage is uneven — the ws-server gameplay path is the best covered, the frontend the thinnest |
 | **Live video** | No TURN/TLS yet, so players on networks that block UDP 7882 and TCP 7881 get the quiz without the video |
 | **Frontend lint** | ~20 pre-existing eslint errors; the CI lint step reports without blocking (#6) |
