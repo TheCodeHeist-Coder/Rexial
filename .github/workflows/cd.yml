@@ -1,7 +1,12 @@
 name: CD
 
 on:
-  push:
+  # Deploy only once CI has gone green for the commit. Triggering on push
+  # instead ran the two in parallel, and the deploy normally finished first,
+  # so a commit whose tests failed still reached production.
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
   # Allows a manual redeploy from the Actions tab without a new commit.
   workflow_dispatch:
@@ -17,12 +22,22 @@ permissions:
 
 env:
   REGISTRY_NAMESPACE: codeheist
+  # Under workflow_run, github.sha is the default branch tip rather than the
+  # commit CI actually tested, so every job pins this instead. A manual
+  # redeploy has no triggering run and falls back to github.sha.
+  DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
 
 jobs:
   build-and-push:
     name: Build & push ${{ matrix.service }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
+
+    # A failed or cancelled CI run must not deploy. workflow_dispatch has no
+    # triggering run, so the second clause keeps manual redeploys working.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
 
     strategy:
       fail-fast: false
@@ -48,6 +63,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The commit CI tested, not whatever main points at now.
+          ref: ${{ env.DEPLOY_SHA }}
 
       - uses: docker/setup-buildx-action@v3
 
@@ -67,7 +85,7 @@ jobs:
           # be rolled back to an exact known-good image.
           tags: |
             ${{ env.REGISTRY_NAMESPACE }}/${{ matrix.image }}:latest
-            ${{ env.REGISTRY_NAMESPACE }}/${{ matrix.image }}:${{ github.sha }}
+            ${{ env.REGISTRY_NAMESPACE }}/${{ matrix.image }}:${{ env.DEPLOY_SHA }}
           build-args: |
             DATABASE_URL=${{ secrets.DATABASE_URL }}
           cache-from: type=gha,scope=${{ matrix.service }}
@@ -76,7 +94,7 @@ jobs:
       - name: Scan image for vulnerabilities
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: ${{ env.REGISTRY_NAMESPACE }}/${{ matrix.image }}:${{ github.sha }}
+          image-ref: ${{ env.REGISTRY_NAMESPACE }}/${{ matrix.image }}:${{ env.DEPLOY_SHA }}
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           format: table
@@ -112,11 +130,11 @@ jobs:
             # Take the exact commit this workflow built.
             git fetch --all
             git checkout main
-            git reset --hard ${{ github.sha }}
+            git reset --hard ${{ env.DEPLOY_SHA }}
 
             # Pin to this commit's images rather than :latest, so the
             # deployed version is unambiguous and rollback is exact.
-            export IMAGE_TAG=${{ github.sha }}
+            export IMAGE_TAG=${{ env.DEPLOY_SHA }}
 
             echo "Pulling images tagged $IMAGE_TAG"
             docker compose -f docker-compose.prod.yml pull \
@@ -157,7 +175,7 @@ jobs:
     steps:
       - name: Explain how to roll back
         run: |
-          echo "Deploy of ${{ github.sha }} failed."
+          echo "Deploy of ${{ env.DEPLOY_SHA }} failed."
           echo ""
           echo "Every build is tagged with its commit SHA, so rolling back"
           echo "is a matter of pinning the last known-good one:"
