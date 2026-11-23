@@ -6,6 +6,7 @@ import { getCachedQuestions, getCachedLeaderboard,
 import { broadcastToSession } from './broadcastTosession.js';
 import { sessionTimers } from '../clients/index.js';
 import { flushSession } from './answerQueue.js';
+import { observeQuestionCloseLatency } from './metrics.js';
 
 // Redis key that marks "a timer is already running for this question"
 const timerLockKey = (sessionId: string, questionIndex: number) =>
@@ -49,6 +50,7 @@ async function finishQuestion(
      * ticking into negative numbers with results that never came.
      */
     byCountdown = false,
+    timerEndedAt?: number,
 ) {
     const lockKey = timerLockKey(sessionId, questionIndex);
 
@@ -105,6 +107,9 @@ async function finishQuestion(
             .filter((a: any) => a.isCorrect)
             .map((a: any) => a.id),
     });
+    if (timerEndedAt !== undefined) {
+        observeQuestionCloseLatency((Date.now() - timerEndedAt) / 1_000);
+    }
 
     setTimeout(() => {
         broadcastToSession(sessionId, 'quiz:leaderboard', { leaderboard });
@@ -223,7 +228,7 @@ export async function startQuestionTimer(
             // error in here has to be caught on the spot. Left alone it is an
             // unhandled rejection, and on Node 22 that takes down the whole
             // process and every quiz running on it.
-            finishQuestion(sessionId, questionIndex, true).catch((err) =>
+            finishQuestion(sessionId, questionIndex, true, endsAt).catch((err) =>
                 console.error('[timer] countdown finish failed', { sessionId, questionIndex }, err),
             );
         }
