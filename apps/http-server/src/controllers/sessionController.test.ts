@@ -1,15 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Request, Response } from "express";
 
-const { findUnique, participantCreate, transaction } = vi.hoisted(() => ({
+const { findUnique, participantCreate, transaction, pollFindMany } = vi.hoisted(() => ({
     findUnique: vi.fn(),
     participantCreate: vi.fn(),
     transaction: vi.fn(),
+    pollFindMany: vi.fn(),
 }));
 
-vi.mock("@repo/db", () => ({ prisma: { quiz: { findUnique }, $transaction: transaction } }));
+vi.mock("@repo/db", () => ({
+    prisma: {
+        quiz: { findUnique },
+        poll: { findMany: pollFindMany },
+        $transaction: transaction,
+    },
+}));
 
-import { joinQuizController } from "./sessionController";
+import { getSessionPollsController, joinQuizController } from "./sessionController";
 
 const run = async (body: unknown) => {
     const req = { body } as unknown as Request;
@@ -81,3 +88,49 @@ describe("joinQuizController", () => {
         expect(res.json).toHaveBeenCalledWith({ success: false, error: "Quiz not found" });
     });
 });
+
+describe("getSessionPollsController", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it("returns polls for the session", async () => {
+        const mockPolls = [
+            {
+                id: "poll-1",
+                sessionId: "session-1",
+                question: "Do you like polls?",
+                totalVotes: 5,
+                options: [
+                    { id: "opt-1", text: "Yes", voteCount: 4, order: 0 },
+                    { id: "opt-2", text: "No", voteCount: 1, order: 1 },
+                ],
+            },
+        ];
+        pollFindMany.mockResolvedValue(mockPolls);
+
+        const req = { params: { sessionId: "session-1" } } as unknown as Request;
+        const res = { status: vi.fn().mockReturnThis(), json: vi.fn() } as unknown as Response;
+
+        await getSessionPollsController(req, res);
+
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(res.json).toHaveBeenCalledWith({ polls: mockPolls });
+        expect(pollFindMany).toHaveBeenCalledWith({
+            where: { sessionId: "session-1" },
+            include: { options: { orderBy: { order: "asc" } } },
+            orderBy: { createdAt: "desc" },
+        });
+    });
+
+    it("returns 400 when sessionId is missing", async () => {
+        const req = { params: {} } as unknown as Request;
+        const res = { status: vi.fn().mockReturnThis(), json: vi.fn() } as unknown as Response;
+
+        await getSessionPollsController(req, res);
+
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(res.json).toHaveBeenCalledWith({ success: false, error: "Session ID is required" });
+    });
+});
+

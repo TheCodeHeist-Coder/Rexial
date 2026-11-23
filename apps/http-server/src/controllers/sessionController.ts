@@ -147,3 +147,28 @@ export const getLeaderboardController = async (req: Request, res: Response) => {
         return errorResponse(res, 500, 'Internal server error');
     }
 }
+
+// logic for getting recorded polls for a quiz session
+export const getSessionPollsController = async (req: Request, res: Response) => {
+    try {
+        const sessionId = req.params.sessionId;
+        if (!sessionId) {
+            return errorResponse(res, 400, "Session ID is required");
+        }
+
+        const polls = await prisma.poll.findMany({
+            where: { sessionId: String(sessionId) },
+            include: {
+                options: {
+                    orderBy: { order: 'asc' },
+                },
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+
+        return res.status(200).json({ polls });
+    } catch (error) {
+        console.log("error while getting session polls", error);
+        return errorResponse(res, 500, 'Internal server error');
+    }
+};
