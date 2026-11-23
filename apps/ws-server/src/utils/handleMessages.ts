@@ -31,6 +31,17 @@ import {
     isSessionOrganizer,
     sendError,
 } from "./organizerAuth.js";
+import {
+    createPoll,
+    votePoll,
+    endPoll,
+    recordPoll,
+    dismissPoll,
+    getActivePoll,
+    getRecordedPolls,
+    sanitizePoll,
+    clearSessionPolls,
+} from "./pollManager.js";
 
 
 /**
@@ -162,6 +173,8 @@ async function sendQuizStateSnapshot(client: Client, sessionId: string) {
         })),
     };
 
+    const activePoll = getActivePoll(sessionId);
+
     if (client.ws.readyState !== WebSocket.OPEN) return;
 
     client.ws.send(JSON.stringify({
@@ -175,6 +188,7 @@ async function sendQuizStateSnapshot(client: Client, sessionId: string) {
             alreadyAnswered: !!existingAnswer,
             selectedAnswerId: existingAnswer?.answerId ?? null,
             expired: timeLeft <= 0,
+            activePoll: activePoll ? sanitizePoll(activePoll, client.participantId) : null,
         },
     }));
 }
@@ -603,13 +617,143 @@ export const handleMessage = async (client: Client, data: any) => {
 
             await endQuizSession(sessionId);
             await clearSessionCache(sessionId);
+            clearSessionPolls(sessionId);
 
             broadcastToSession(sessionId, 'quiz:leaderboard', { leaderboard });
             broadcastToSession(sessionId, 'quiz:ended');
             break;
 
         }
+
+        case 'poll:create': {
+            const sessionId = authorizeOrganizerAction(client, payload);
+            if (!sessionId) break;
+
+            const { question, options, questionIndex, duration } = payload;
+            if (!question || typeof question !== 'string' || question.trim().length === 0) {
+                sendError(client, 'INVALID_POLL', 'Poll question cannot be empty.');
+                break;
+            }
+            if (!Array.isArray(options) || options.filter((o: unknown) => typeof o === 'string' && o.trim().length > 0).length < 2) {
+                sendError(client, 'INVALID_POLL', 'Poll must have at least two options.');
+                break;
+            }
+
+            const poll = createPoll(
+                sessionId,
+                question,
+                options,
+                questionIndex,
+                duration,
+                () => {
+                    const expired = getActivePoll(sessionId);
+                    if (expired) {
+                        broadcastToSession(sessionId, 'poll:ended', {
+                            poll: sanitizePoll(expired),
+                        });
+                    }
+                }
+            );
+
+            broadcastToSession(sessionId, 'poll:started', {
+                poll: sanitizePoll(poll),
+            });
+            break;
+        }
+
+        case 'poll:vote': {
+            const { sessionId, pollId, optionId, participantId } = payload;
+            const voterId = client.participantId || participantId;
+            if (!voterId || !sessionId || !pollId || !optionId) break;
+
+            const result = votePoll(sessionId, pollId, optionId, voterId);
+            if (!result.success || !result.poll) {
+                sendError(client, result.error || 'VOTE_FAILED', 'Could not record your vote.');
+                break;
+            }
+
+            broadcastToSession(sessionId, 'poll:updated', {
+                poll: sanitizePoll(result.poll),
+            });
+
+            if (client.ws.readyState === WebSocket.OPEN) {
+                client.ws.send(JSON.stringify({
+                    type: 'poll:voted',
+                    payload: {
+                        pollId,
+                        optionId,
+                    },
+                }));
+            }
+            break;
+        }
+
+        case 'poll:end': {
+            const sessionId = authorizeOrganizerAction(client, payload);
+            if (!sessionId) break;
+
+            const { pollId } = payload;
+            if (!pollId) break;
+
+            const poll = endPoll(sessionId, pollId);
+            if (!poll) break;
+
+            broadcastToSession(sessionId, 'poll:ended', {
+                poll: sanitizePoll(poll),
+            });
+            break;
+        }
+
+        case 'poll:record': {
+            const sessionId = authorizeOrganizerAction(client, payload);
+            if (!sessionId) break;
+
+            const { pollId } = payload;
+            if (!pollId) break;
+
+            const result = await recordPoll(sessionId, pollId);
+            if (!result.success || !result.poll) {
+                sendError(client, result.error || 'RECORD_FAILED', 'Could not record poll result.');
+                break;
+            }
+
+            broadcastToSession(sessionId, 'poll:recorded', {
+                pollId,
+                recordedAt: result.poll.recordedAt,
+                poll: sanitizePoll(result.poll),
+            });
+            break;
+        }
+
+        case 'poll:dismiss': {
+            const sessionId = authorizeOrganizerAction(client, payload);
+            if (!sessionId) break;
+
+            const { pollId } = payload;
+            if (!pollId) break;
+
+            dismissPoll(sessionId, pollId);
+            broadcastToSession(sessionId, 'poll:dismissed', { pollId });
+            break;
+        }
+
+        case 'poll:get-recorded': {
+            const sessionId = authorizeOrganizerAction(client, payload);
+            if (!sessionId) break;
+
+            const recorded = getRecordedPolls(sessionId);
+            if (client.ws.readyState === WebSocket.OPEN) {
+                client.ws.send(JSON.stringify({
+                    type: 'poll:recorded-list',
+                    payload: {
+                        polls: recorded.map(p => sanitizePoll(p)),
+                    },
+                }));
+            }
+            break;
+        }
     }
 }
+
 
 

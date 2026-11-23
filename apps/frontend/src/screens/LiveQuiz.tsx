@@ -3,12 +3,16 @@ import { useAuthStore } from "../store/authStore";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { LuUserSearch } from "react-icons/lu";
 import { getAvatar, getAvatarColor } from "../utils/Avatars";
-import { BiCheckCircle, BiXCircle } from "react-icons/bi";
+import { BiCheckCircle, BiPoll, BiXCircle } from "react-icons/bi";
 import BgBoss from "../components/BgBoss";
 import { FaSpinner } from "react-icons/fa6";
-import { MdViewInAr } from "react-icons/md";
+import { MdHistory, MdViewInAr } from "react-icons/md";
 import { participantTokenKey, streamingEnabled } from "../services/streamApi";
 import { downloadLeaderboardCsv } from "../utils/leaderboardCsv";
+import CreatePollModal from "../components/poll/CreatePollModal";
+import ActivePollOverlay from "../components/poll/ActivePollOverlay";
+import RecordedPollsModal from "../components/poll/RecordedPollsModal";
+import type { Poll } from "../components/poll/types";
 
 // The LiveKit client is most of a megabyte; only a live video quiz loads it.
 const LiveStage = lazy(() => import("../components/live/LiveStage"));
@@ -68,6 +72,13 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
   // Set by the server on join: the host opened this lobby with live video.
   const [liveVideo, setLiveVideo] = useState(false);
   const [startError, setStartError] = useState('');
+
+  // Live polling state
+  const [activePoll, setActivePoll] = useState<Poll | null>(null);
+  const [showCreatePoll, setShowCreatePoll] = useState(false);
+  const [showRecordedPolls, setShowRecordedPolls] = useState(false);
+  const [recordedPolls, setRecordedPolls] = useState<Poll[]>([]);
+  const [pollNotice, setPollNotice] = useState<string | null>(null);
 
 
 
@@ -332,6 +343,9 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
             if (typeof payload.questionIndex === 'number') {
               setQIndex(payload.questionIndex);
             }
+            if (payload.activePoll) {
+              setActivePoll(payload.activePoll);
+            }
             setGameState(payload.expired ? GameState.RESULTS : GameState.QUESTION);
             break;
           case 'quiz:timer-tick':
@@ -382,6 +396,42 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
             break;
           case 'quiz:ended':
             setGameState(GameState.ENDED);
+            break;
+          case 'poll:snapshot':
+          case 'poll:started':
+            setActivePoll(payload.poll);
+            break;
+          case 'poll:updated':
+            setActivePoll((prev) => (prev ? { ...prev, ...payload.poll } : payload.poll));
+            break;
+          case 'poll:voted':
+            setActivePoll((prev) => (prev ? { ...prev, votedOptionId: payload.optionId } : prev));
+            break;
+          case 'poll:ended':
+            setActivePoll((prev) => (prev ? { ...prev, ...payload.poll, status: 'ENDED' } : payload.poll));
+            break;
+          case 'poll:recorded':
+            setActivePoll((prev) =>
+              prev && prev.id === payload.pollId
+                ? { ...prev, isRecorded: true, recordedAt: payload.recordedAt }
+                : prev
+            );
+            if (payload.poll) {
+              setRecordedPolls((prev) => {
+                if (prev.some((p) => p.id === payload.pollId)) {
+                  return prev.map((p) => (p.id === payload.pollId ? payload.poll : p));
+                }
+                return [payload.poll, ...prev];
+              });
+            }
+            setPollNotice("Poll result recorded successfully!");
+            setTimeout(() => setPollNotice(null), 3500);
+            break;
+          case 'poll:dismissed':
+            setActivePoll(null);
+            break;
+          case 'poll:recorded-list':
+            setRecordedPolls(payload.polls || []);
             break;
         }
       };
@@ -442,6 +492,80 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
 
   const handleStart = () => {
     sendMessage({ type: 'quiz:start', payload: { sessionId } });
+  };
+
+  const handleCreatePoll = (data: { question: string; options: string[]; duration?: number }) => {
+    sendMessage({
+      type: 'poll:create',
+      payload: {
+        sessionId,
+        question: data.question,
+        options: data.options,
+        duration: data.duration,
+        questionIndex: qIndex,
+        token: isOrganizer ? token : undefined,
+      },
+    });
+  };
+
+  const handleVotePoll = (optionId: string) => {
+    if (!activePoll) return;
+    sendMessage({
+      type: 'poll:vote',
+      payload: {
+        sessionId,
+        pollId: activePoll.id,
+        optionId,
+        participantId,
+      },
+    });
+  };
+
+  const handleEndPoll = () => {
+    if (!activePoll) return;
+    sendMessage({
+      type: 'poll:end',
+      payload: {
+        sessionId,
+        pollId: activePoll.id,
+        token: isOrganizer ? token : undefined,
+      },
+    });
+  };
+
+  const handleRecordPoll = () => {
+    if (!activePoll) return;
+    sendMessage({
+      type: 'poll:record',
+      payload: {
+        sessionId,
+        pollId: activePoll.id,
+        token: isOrganizer ? token : undefined,
+      },
+    });
+  };
+
+  const handleDismissPoll = () => {
+    if (!activePoll) return;
+    sendMessage({
+      type: 'poll:dismiss',
+      payload: {
+        sessionId,
+        pollId: activePoll.id,
+        token: isOrganizer ? token : undefined,
+      },
+    });
+  };
+
+  const handleOpenRecordedPolls = () => {
+    setShowRecordedPolls(true);
+    sendMessage({
+      type: 'poll:get-recorded',
+      payload: {
+        sessionId,
+        token: isOrganizer ? token : undefined,
+      },
+    });
   };
 
   const handleNext = () => {
@@ -1128,6 +1252,85 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
           />
         </Suspense>
       )}
+
+      {/* Organizer Live Poll Controls */}
+      {isOrganizer && gameState !== GameState.ENDED && (
+        <div className="fixed top-4 right-4 sm:right-8 z-40 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowCreatePoll(true)}
+            disabled={!isConnected}
+            className="flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-2xl bg-linear-to-b from-pink-600 to-pink-700 hover:from-pink-500 hover:to-pink-600 text-white font-secondary font-bold text-xs sm:text-sm tracking-wide shadow-lg shadow-pink-900/40 border border-pink-400/30 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+            title="Create a quick poll in the middle of quiz"
+          >
+            <BiPoll className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+            <span>Create Poll</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleOpenRecordedPolls}
+            disabled={!isConnected}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 text-pink-300 border border-pink-700/40 text-xs sm:text-sm font-secondary font-semibold transition-all cursor-pointer"
+            title="View recorded polls history"
+          >
+            <MdHistory className="w-4 h-4" />
+            <span className="hidden sm:inline">Polls</span>
+            {recordedPolls.length > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-pink-500/30 text-pink-300 text-[11px] font-bold">
+                {recordedPolls.length}
+              </span>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* Toast Notice for Recorded Poll */}
+      {pollNotice && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-6 right-6 z-100 px-4 py-3 rounded-2xl bg-emerald-950/95 border border-emerald-500/50 shadow-2xl shadow-emerald-950 text-emerald-300 font-secondary text-sm flex items-center gap-2 backdrop-blur-md animate-bounce"
+        >
+          <BiCheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
+          <span>{pollNotice}</span>
+        </div>
+      )}
+
+      {/* Active Poll Overlay */}
+      {activePoll && (
+        <ActivePollOverlay
+          poll={activePoll}
+          isOrganizer={isOrganizer}
+          participantId={participantId}
+          onVote={handleVotePoll}
+          onEndPoll={handleEndPoll}
+          onRecordPoll={handleRecordPoll}
+          onDismissPoll={handleDismissPoll}
+          isConnected={isConnected}
+        />
+      )}
+
+      {/* Create Poll Modal */}
+      {showCreatePoll && (
+        <CreatePollModal
+          isOpen={showCreatePoll}
+          onClose={() => setShowCreatePoll(false)}
+          onSubmit={handleCreatePoll}
+          currentQuestionText={currentQuestion?.text}
+          questionIndex={qIndex}
+        />
+      )}
+
+      {/* Recorded Polls History Modal */}
+      {showRecordedPolls && (
+        <RecordedPollsModal
+          isOpen={showRecordedPolls}
+          onClose={() => setShowRecordedPolls(false)}
+          polls={recordedPolls}
+        />
+      )}
+
       {renderScreen()}
     </>
   );

@@ -7,3 +7,4 @@ tsconfig.tsbuildinfo
 
 
 /src/generated/prisma
+/.generated_nobody_backup

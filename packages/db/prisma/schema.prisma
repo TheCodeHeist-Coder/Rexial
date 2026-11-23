@@ -128,6 +128,7 @@ model QuizSession {
   quiz   Quiz   @relation(fields: [quizId], references: [id], onDelete: Cascade)
 
   participants Participant[]
+  polls        Poll[]
 }
 
 model Participant {
@@ -185,3 +186,54 @@ model ApiRequestLog {
   @@index([createdAt])
   @@index([userId])
 }
+
+model Poll {
+  id            String       @id @default(uuid())
+  question      String
+  questionIndex Int?
+  status        String       @default("ACTIVE")
+  isRecorded    Boolean      @default(false)
+  totalVotes    Int          @default(0)
+  createdAt     DateTime     @default(now())
+  endedAt       DateTime?
+  recordedAt    DateTime?
+
+  sessionId     String
+  session       QuizSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  options       PollOption[]
+  votes         PollVote[]
+
+  @@index([sessionId])
+}
+
+model PollOption {
+  id        String     @id @default(uuid())
+  text      String
+  order     Int        @default(0)
+  voteCount Int        @default(0)
+
+  pollId    String
+  poll      Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+
+  votes     PollVote[]
+
+  @@index([pollId])
+}
+
+model PollVote {
+  id            String     @id @default(uuid())
+  createdAt     DateTime   @default(now())
+
+  pollId        String
+  poll          Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+
+  optionId      String
+  option        PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  participantId String
+
+  @@unique([pollId, participantId])
+  @@index([pollId])
+}
+

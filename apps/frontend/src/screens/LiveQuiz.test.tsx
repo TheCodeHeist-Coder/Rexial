@@ -272,3 +272,135 @@ describe('LiveQuiz final leaderboard', () => {
         expect(player.closest('div[class*="ring-2"]')).not.toBeNull();
     });
 });
+
+describe('LiveQuiz polling integration', () => {
+    it('shows Create Poll button for organizer and not for participant', async () => {
+        const view = renderLive('/live/session-1', true);
+        await firstJoinMessage();
+        expect(screen.getByRole('button', { name: /Create Poll/i })).toBeInTheDocument();
+        view.unmount();
+
+        // Switch to participant
+        localStorage.setItem('rexial:participant:session-2', 'participant-1');
+        renderLive('/live/session-2', false);
+        await waitFor(() => expect(sockets[1]?.sent.length).toBeGreaterThan(0));
+        expect(screen.queryByRole('button', { name: /Create Poll/i })).not.toBeInTheDocument();
+    });
+
+    it('organizer can open modal and launch poll', async () => {
+        const user = userEvent.setup();
+        renderLive('/live/session-1', true);
+        await firstJoinMessage();
+
+        await user.click(screen.getByRole('button', { name: /Create Poll/i }));
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+        await user.type(screen.getByLabelText(/Poll Question \/ Prompt/i), 'Enjoying the quiz?');
+        const optionInputs = screen.getAllByPlaceholderText(/Option/i);
+        await user.type(optionInputs[0]!, 'Yes');
+        await user.type(optionInputs[1]!, 'No');
+
+        await user.click(screen.getByRole('button', { name: /Launch Poll/i }));
+
+        const pollCreateMessages = sentOfType('poll:create');
+        expect(pollCreateMessages).toHaveLength(1);
+        expect(pollCreateMessages[0]!.payload).toMatchObject({
+            sessionId: 'session-1',
+            question: 'Enjoying the quiz?',
+            options: ['Yes', 'No'],
+        });
+    });
+
+    it('renders active poll and allows participant to vote', async () => {
+        const user = userEvent.setup();
+        localStorage.setItem('rexial:participant:session-1', 'participant-1');
+        renderLive('/live/session-1', false);
+        await firstJoinMessage();
+
+        deliver('poll:started', {
+            poll: {
+                id: 'poll-100',
+                sessionId: 'session-1',
+                question: 'Live mid-question poll?',
+                status: 'ACTIVE',
+                isRecorded: false,
+                totalVotes: 0,
+                createdAt: Date.now(),
+                options: [
+                    { id: 'opt-yes', text: 'Yes definitely', order: 0, voteCount: 0, percentage: 0 },
+                    { id: 'opt-no', text: 'No', order: 1, voteCount: 0, percentage: 0 },
+                ],
+            },
+        });
+
+        expect(await screen.findByText('Live mid-question poll?')).toBeInTheDocument();
+        const voteBtn = screen.getByRole('button', { name: /Yes definitely/i });
+        await user.click(voteBtn);
+
+        const voteMessages = sentOfType('poll:vote');
+        expect(voteMessages).toHaveLength(1);
+        expect(voteMessages[0]!.payload).toMatchObject({
+            sessionId: 'session-1',
+            pollId: 'poll-100',
+            optionId: 'opt-yes',
+            participantId: 'participant-1',
+        });
+    });
+
+    it('organizer can record the poll result at the moment', async () => {
+        const user = userEvent.setup();
+        renderLive('/live/session-1', true);
+        await firstJoinMessage();
+
+        deliver('poll:started', {
+            poll: {
+                id: 'poll-200',
+                sessionId: 'session-1',
+                question: 'Rate this question difficulty',
+                status: 'ACTIVE',
+                isRecorded: false,
+                totalVotes: 5,
+                createdAt: Date.now(),
+                options: [
+                    { id: 'opt-easy', text: 'Easy', order: 0, voteCount: 4, percentage: 80 },
+                    { id: 'opt-hard', text: 'Hard', order: 1, voteCount: 1, percentage: 20 },
+                ],
+            },
+        });
+
+        expect(await screen.findByText('Rate this question difficulty')).toBeInTheDocument();
+        const recordBtn = screen.getByRole('button', { name: /Record Result/i });
+        await user.click(recordBtn);
+
+        const recordMessages = sentOfType('poll:record');
+        expect(recordMessages).toHaveLength(1);
+        expect(recordMessages[0]!.payload).toMatchObject({
+            sessionId: 'session-1',
+            pollId: 'poll-200',
+        });
+
+        deliver('poll:recorded', {
+            pollId: 'poll-200',
+            recordedAt: Date.now(),
+            poll: {
+                id: 'poll-200',
+                sessionId: 'session-1',
+                question: 'Rate this question difficulty',
+                status: 'ACTIVE',
+                isRecorded: true,
+                recordedAt: Date.now(),
+                totalVotes: 5,
+                createdAt: Date.now(),
+                options: [
+                    { id: 'opt-easy', text: 'Easy', order: 0, voteCount: 4, percentage: 80 },
+                    { id: 'opt-hard', text: 'Hard', order: 1, voteCount: 1, percentage: 20 },
+                ],
+            },
+        });
+
+        expect(await screen.findByText(/Poll result recorded successfully!/i)).toBeInTheDocument();
+        expect(screen.getByText(/^Recorded/i)).toBeInTheDocument();
+    });
+});
+
+
