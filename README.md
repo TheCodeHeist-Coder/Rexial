@@ -51,7 +51,9 @@ If you want to work on any of the following, there is real code here to work on:
   work took p99 latency from 466ms to ~9ms for thousands of concurrent users.
 - **Retrieval-augmented generation** — a Python/FastAPI service chunks and embeds PDFs,
   then generates validated multiple-choice questions.
-- **Monorepo architecture** — Turborepo + pnpm workspaces across four services and a
+- **WebRTC at the edge** — a self-hosted LiveKit SFU carries live video for up to 300
+  players, with a small Express service issuing tokens and handling moderation.
+- **Monorepo architecture** — Turborepo + pnpm workspaces across five services and a
   shared Prisma package.
 - **Deployment** — Docker Compose for dev and prod, GitHub Actions CI, Jenkins, nginx.
 
@@ -78,23 +80,36 @@ If you want to work on any of the following, there is real code here to work on:
 
 ## Architecture
 
-```
-                        React frontend
-                              │
-                 ┌────────────┴────────────┐
-              REST API                WebSocket
-                 │                         │
-                 ▼                         ▼
-          http-server                 ws-server  ──────┐
-          (Express)                   (live quiz)      │
-                 │                         │           ▼
-                 └────────────┬────────────┘        Redis
-                              ▼                   (pub/sub,
-                        PostgreSQL                leaderboard)
-                        (Prisma ORM)
+```mermaid
+flowchart TB
+    SPA["React frontend"]
 
-            genAI service (FastAPI) ── PDF → RAG → questions
+    HTTP["<b>http-server</b><br/>Express :4000<br/>auth · quiz CRUD"]
+    WS["<b>ws-server</b><br/>ws :8080<br/>live gameplay · scoring"]
+    AI["<b>genAI</b><br/>FastAPI :8000<br/>PDF → questions"]
+    ST["<b>streaming</b><br/>Express :7000<br/>room tokens"]
+    LK["<b>LiveKit</b> SFU<br/>WebRTC video"]
+
+    PG[("PostgreSQL<br/>Prisma")]
+    RD[("Redis<br/>cache · pub/sub")]
+
+    SPA -->|REST| HTTP
+    SPA -->|WebSocket| WS
+    SPA -->|PDF upload| AI
+    SPA -.->|REST| ST
+    SPA ==>|camera + mic| LK
+
+    HTTP --> PG
+    WS --> PG
+    WS --> RD
+    HTTP --> RD
+    ST -.-> LK
+
+    classDef optional stroke-dasharray: 6 4
+    class ST,LK optional
 ```
+
+Live video (`streaming` + LiveKit) is optional and off unless configured.
 
 | Service | Stack | Port |
 |---|---|---|
