@@ -1,4 +1,10 @@
 import { prisma } from "@repo/db";
+import {
+    recordAnswerQueueFlushFailure,
+    recordAnswerQueueTransactionError,
+    recordAnswerSubmitted,
+    recordAnswersPersisted,
+} from "./metrics.js";
 
 /**
  * Buffered writer for answer submissions.
@@ -76,6 +82,7 @@ export function enqueueAnswer(sessionId: string, answer: PendingAnswer): boolean
     }
 
     buffer.set(key, answer);
+    recordAnswerSubmitted();
 
     let seen = questionsBySession.get(sessionId);
     if (!seen) {
@@ -197,6 +204,7 @@ export async function flushSession(sessionId: string): Promise<void> {
             skipDuplicates: true,
             select: { participantId: true, points: true },
         });
+        recordAnswersPersisted(inserted.length);
 
         // Remember who is now written, so countAnswered can work from memory
         // rather than querying once per submission.
@@ -213,16 +221,22 @@ export async function flushSession(sessionId: string): Promise<void> {
         }
 
         if (byPoints.size > 0) {
-            await prisma.$transaction(
-                [...byPoints.entries()].map(([points, ids]) =>
-                    prisma.participant.updateMany({
-                        where: { id: { in: ids } },
-                        data: { score: { increment: points } },
-                    }),
-                ),
-            );
+            try {
+                await prisma.$transaction(
+                    [...byPoints.entries()].map(([points, ids]) =>
+                        prisma.participant.updateMany({
+                            where: { id: { in: ids } },
+                            data: { score: { increment: points } },
+                        }),
+                    ),
+                );
+            } catch (err) {
+                recordAnswerQueueTransactionError();
+                throw err;
+            }
         }
     } catch (err) {
+        recordAnswerQueueFlushFailure();
         // Put the batch back so the next flush retries it, rather than losing
         // answers people have already given. Entries that arrived meanwhile
         // win, since they are newer.

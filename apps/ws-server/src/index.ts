@@ -2,16 +2,31 @@ import { configDotenv } from 'dotenv';
 configDotenv();
 import WebSocket, { WebSocketServer } from 'ws';
 
-import { clients, unindexClient } from './clients/index.js';
+import { clients, sessionTimers, unindexClient } from './clients/index.js';
 import { handleMessage } from './utils/handleMessages.js';
 import { startSessionSubscriber } from './utils/broadcastTosession.js';
 import { invalidateParticipants } from './utils/cache.js';
 import { drainAll } from './utils/answerQueue.js';
-
+import { createMetricsServer } from './utils/metrics.js';
 
 
 
 const wss = new WebSocketServer({ port: 8080 });
+const metricsPort = Number(process.env.METRICS_PORT ?? 9090);
+if (!Number.isInteger(metricsPort) || metricsPort < 1 || metricsPort > 65535) {
+    throw new Error('METRICS_PORT must be an integer between 1 and 65535');
+}
+const metricsHost = process.env.METRICS_HOST ?? '127.0.0.1';
+const metricsServer = createMetricsServer(() => ({
+    openConnections: clients.size,
+    sessionsInProgress: sessionTimers.size,
+}));
+metricsServer.on('error', (err) => {
+    console.error('[metrics] server failed', err);
+});
+metricsServer.listen(metricsPort, metricsHost, () => {
+    console.log(`[metrics] listening on ${metricsHost}:${metricsPort}`);
+});
 
 
 
@@ -70,6 +85,7 @@ for (const signal of ['SIGTERM', 'SIGINT'] as const) {
             console.error('[shutdown] flush failed', err);
         }
 
+        metricsServer.close();
         wss.close(() => process.exit(0));
         // Do not hang on a socket that will not close.
         setTimeout(() => process.exit(0), 5_000).unref();
