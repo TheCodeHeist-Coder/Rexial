@@ -1,5 +1,12 @@
+import hashlib
+import io
 import json
 import re
+from collections import OrderedDict
+from concurrent.futures import Future
+from copy import deepcopy
+from pathlib import Path
+from threading import Lock
 
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
@@ -20,6 +27,15 @@ EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
 DIFFICULTIES = ("Low", "Medium", "High")
 
 _embeddings = None
+_embeddings_lock = Lock()
+
+PDF_CHUNK_SIZE = 1000
+PDF_CHUNK_OVERLAP = 150
+PDF_CACHE_MAX_ENTRIES = 4
+PDF_CACHE_MAX_CHUNKS = 2000
+_pdf_cache: OrderedDict[tuple, InMemoryVectorStore] = OrderedDict()
+_pdf_inflight: dict[tuple, Future] = {}
+_pdf_cache_lock = Lock()
 
 
 class PdfProblem(Exception):
@@ -71,13 +87,16 @@ def get_embeddings():
 
     global _embeddings
 
-    if _embeddings is None:
-        _embeddings = FastEmbedEmbeddings(EMBEDDING_MODEL)
+    with _embeddings_lock:
+        if _embeddings is None:
+            _embeddings = FastEmbedEmbeddings(EMBEDDING_MODEL)
 
     return _embeddings
 
 
-def load_pdf_chunks(pdf_path: str, chunk_size: int, chunk_overlap: int) -> list[Document]:
+def load_pdf_chunks(
+    pdf_path: str, chunk_size: int, chunk_overlap: int, *, pdf_bytes: bytes | None = None
+) -> list[Document]:
     """Read a PDF page by page and split it into overlapping chunks."""
 
     try:
@@ -86,7 +105,9 @@ def load_pdf_chunks(pdf_path: str, chunk_size: int, chunk_overlap: int) -> list[
                 page_content=page.extract_text() or "",
                 metadata={"source": pdf_path, "page": number},
             )
-            for number, page in enumerate(PdfReader(pdf_path).pages)
+            for number, page in enumerate(
+                PdfReader(io.BytesIO(pdf_bytes) if pdf_bytes is not None else pdf_path).pages
+            )
         ]
     except FileNotDecryptedError as exc:
         raise PdfEncrypted(
@@ -136,15 +157,70 @@ def generate_questions(pdf_path: str, user_query: str):
 
 
 def create_pdf_vectorstore(pdf_path: str):
+    """Reuse document vectors, with request-local source paths and mutable records."""
 
-    chunks = load_pdf_chunks(pdf_path, chunk_size=1000, chunk_overlap=150)
+    try:
+        pdf_bytes = Path(pdf_path).read_bytes()
+    except OSError as exc:
+        raise PdfUnreadable("This PDF could not be read. Try uploading it again.") from exc
 
-    vectorstore = InMemoryVectorStore.from_documents(
-        chunks,
-        embedding=get_embeddings()
+    key = (
+        hashlib.sha256(pdf_bytes).hexdigest(),
+        EMBEDDING_MODEL,
+        PDF_CHUNK_SIZE,
+        PDF_CHUNK_OVERLAP,
     )
+    with _pdf_cache_lock:
+        cached = _pdf_cache.get(key)
+        owner = False
+        if cached is not None:
+            _pdf_cache.move_to_end(key)
+        else:
+            future = _pdf_inflight.get(key)
+            if future is None:
+                future = _pdf_inflight[key] = Future()
+                owner = True
 
-    return vectorstore
+    if cached is not None or not owner:
+        del pdf_bytes
+
+    if cached is None:
+        if not owner:
+            cached = future.result()
+        else:
+            try:
+                # Hash and parse the same snapshot, even if the file is replaced meanwhile.
+                chunks = load_pdf_chunks(
+                    pdf_path, PDF_CHUNK_SIZE, PDF_CHUNK_OVERLAP, pdf_bytes=pdf_bytes
+                )
+                del pdf_bytes
+                for chunk in chunks:
+                    chunk.metadata.pop("source", None)
+                cached = InMemoryVectorStore.from_documents(chunks, embedding=get_embeddings())
+                with _pdf_cache_lock:
+                    # Oversized stores serve this flight but do not evict useful cached PDFs.
+                    if len(cached.store) <= PDF_CACHE_MAX_CHUNKS:
+                        _pdf_cache[key] = cached
+                        while (
+                            len(_pdf_cache) > PDF_CACHE_MAX_ENTRIES
+                            or sum(len(store.store) for store in _pdf_cache.values())
+                            > PDF_CACHE_MAX_CHUNKS
+                        ):
+                            _pdf_cache.popitem(last=False)
+                    _pdf_inflight.pop(key)
+                future.set_result(cached)
+            except BaseException as exc:
+                with _pdf_cache_lock:
+                    _pdf_inflight.pop(key, None)
+                future.set_exception(exc)
+                raise
+
+    # Retrieval returns mutable metadata; never expose the shared cached records.
+    view = InMemoryVectorStore(embedding=cached.embedding)
+    view.store = deepcopy(cached.store)
+    for record in view.store.values():
+        record["metadata"]["source"] = pdf_path
+    return view
 
 
 def ask_pdf(pdf_path: str, user_query: str):

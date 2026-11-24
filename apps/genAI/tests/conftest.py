@@ -141,6 +141,15 @@ def fake_embeddings(monkeypatch):
     monkeypatch.setattr(rag_system, "get_embeddings", KeywordEmbeddings)
 
 
+@pytest.fixture(autouse=True)
+def isolated_pdf_cache():
+    rag_system._pdf_cache.clear()
+    rag_system._pdf_inflight.clear()
+    yield
+    rag_system._pdf_cache.clear()
+    rag_system._pdf_inflight.clear()
+
+
 @pytest.fixture
 def upload_dir(tmp_path, monkeypatch):
     monkeypatch.setattr(main, "UPLOAD_DIR", tmp_path)
