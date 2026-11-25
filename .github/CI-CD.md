@@ -10,7 +10,7 @@ locally. The deployment section is for maintainers with production access.
 
 ## CI (what runs on your PR)
 
-Every pull request runs [`ci.yml`](workflows/ci.yml). Six jobs run in parallel,
+Every pull request runs [`ci.yml`](workflows/ci.yml). Jobs run in parallel,
 so you get all the failures at once instead of one at a time.
 
 | Job | What it checks |
@@ -21,6 +21,40 @@ so you get all the failures at once instead of one at a time.
 | **Build images** | All four Dockerfiles still build |
 | **Validate compose** | Both `docker-compose` files are well-formed |
 | **Secret scan** | No credentials committed anywhere in history |
+| **Dependency audit (report only)** | High-severity npm advisories in the committed pnpm workspace lockfile |
+
+### Source and dependency scanning
+
+[`codeql.yml`](workflows/codeql.yml) analyzes JavaScript/TypeScript, Python and
+GitHub Actions on pull requests to `main`, pushes to `main` and every Tuesday.
+It can also be started manually from the Actions tab. These languages use
+CodeQL's `none` build mode, so analysis does not install dependencies, execute
+package scripts or require application credentials. Only the analysis job has
+`security-events: write`; it uploads results to **Security → Code scanning**.
+
+The dependency-audit job runs `pnpm audit --audit-level=high` directly against
+the committed lockfile, without installing packages. It deliberately reports
+findings without blocking CI while the initial baseline is triaged. A green CI
+run therefore does **not** mean the dependency audit found no advisories; read
+that step's output. Keep the existing build, test and secret-scan gates intact.
+
+[`dependabot.yml`](dependabot.yml) checks the root npm/pnpm workspace and
+`apps/genAI` pip requirements weekly. Development-only npm version updates are
+grouped to reduce noise. Version-update PR limits do not disable security
+updates. Alerts and security-update settings are controlled by the repository
+owner, not by this file. The current Python requirements are unpinned: this
+configuration is not proof of a fully resolved Python dependency baseline or
+that a future pip security-update PR has opened.
+
+For the first scans, distinguish genuine findings from false positives and
+record affected direct/transitive dependencies and available fixes. Do not add
+blanket ignores or claim a clean baseline from a successful workflow alone.
+Report exploitable source vulnerabilities privately using [SECURITY.md](../SECURITY.md),
+and coordinate fixes with other assigned work before changing shared files.
+Public third-party advisories can be tracked in a normal follow-up; make the
+audit a gate only after the maintainer agrees how to handle the baseline.
+The [initial dependency triage](security-baseline.md) records the measured
+baseline, existing bot fixes and remaining remediation decisions.
 
 ### Reproducing a failure locally
 

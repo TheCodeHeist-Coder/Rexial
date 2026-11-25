@@ -1,0 +1,17 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    groups:
+      development-dependencies:
+        dependency-type: development
+        patterns: ['*']
+
+  - package-ecosystem: pip
+    directory: /apps/genAI
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 2
