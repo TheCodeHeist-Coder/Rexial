@@ -56,6 +56,46 @@ Interactive API docs: http://localhost:8000/docs
 PDF endpoints return `413` for files over `MAX_UPLOAD_MB` and `422` for PDFs
 with no selectable text (e.g. scanned images).
 
+## PDF Q&A embedding cache
+
+`/ask-pdf` reuses document embeddings for identical PDF bytes, including uploads
+under different filenames. Every request still reads and hashes its file; hits
+skip PDF parsing, chunking and document embedding. Query embedding and the LLM
+answer still run for each question. The question/quiz generators use their own
+text-context flow and are not accelerated by this cache.
+
+The process-local LRU holds at most **4 PDFs and 2,000 chunks in total**. Its key
+includes the content SHA-256, embedding model and chunk size/overlap. Oversized
+stores work for the current requests but are not retained. Concurrent misses for
+one key share a build; a failed build releases its waiters and the next request
+can retry. Lazy model initialization is also protected from concurrent loads.
+
+Cached records have no upload source path. Callers receive independent copies
+with their own source metadata; changing a returned store cannot change another
+request's cached text, vectors or metadata. Hashing and parsing use the same byte
+snapshot, so a file replacement cannot associate new text with an old digest.
+
+Temporary uploads are still deleted after each request, but cached **PDF text
+and vectors remain in process memory until LRU eviction or restart**. They are
+never written to a cache file. There is no age-based deletion or shared cache;
+each worker/replica has its own limits and starts cold. These limits cover retained
+cache entries, not model memory or requests currently building/using a store.
+
+### Reproduce the timing
+
+```bash
+cd apps/genAI
+.venv/bin/python -m tests.benchmark_pdf_cache
+```
+
+This opt-in benchmark downloads the configured fastembed model if needed and
+uses real CPU embeddings on a synthetic PDF. It compares the uncached parent
+implementation with a cold cache request and a renamed warm request, using the
+same initialized/warmed model. It prints timings, PDF hash/size, chunk count and
+document-embedding call counts. Model download/startup and LLM generation are
+excluded; these are local measurements, not production latency guarantees.
+The regular pytest suite stays offline with deterministic fake providers.
+
 ## Docker
 
 Both compose files include this service (`genai`). Built from the repo root:
