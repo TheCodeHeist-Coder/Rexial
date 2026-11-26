@@ -22,6 +22,29 @@ env:
   DATABASE_URL: postgresql://postgres:postgres@localhost:5432/rexial_ci
 
 jobs:
+  dependency-audit:
+    name: Dependency audit (report only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Reads the committed workspace lockfile without running install scripts.
+      # Triage the initial baseline before making this a merge gate.
+      - name: Report high-severity dependency advisories
+        run: pnpm audit --audit-level=high
+        continue-on-error: true
+
   lint-and-types:
     name: Lint & type-check
     runs-on: ubuntu-latest
