@@ -21,7 +21,7 @@ vi.mock("@repo/db", () => ({
     },
 }));
 
-import sessionRouter from "../routes/session";
+import sessionRouter, { SESSION_POLLS_RATE_LIMIT_MAX, sessionPollsRateLimitStore } from "../routes/session";
 import { getSessionPollsController, joinQuizController } from "./sessionController";
 
 const run = async (body: unknown) => {
@@ -98,9 +98,10 @@ describe("joinQuizController", () => {
 describe("getSessionPollsController", () => {
     const SECRET = "test-secret";
 
-    beforeEach(() => {
+    beforeEach(async () => {
         vi.clearAllMocks();
         vi.stubEnv("JWT_SECRET", SECRET);
+        await sessionPollsRateLimitStore.resetAll();
     });
 
     afterEach(() => {
@@ -217,6 +218,70 @@ describe("getSessionPollsController", () => {
             });
             expect(okResp.status).toBe(200);
             expect(await okResp.json()).toEqual({ polls: hostPolls });
+        } finally {
+            server.close();
+        }
+    });
+
+    it("allows legitimate repeated organizer polling up to limit and returns 429 when exceeded", async () => {
+        const app = express();
+        app.use("/api/v1/sessions", sessionRouter);
+
+        const hostToken = jwt.sign({ userId: "host-1" }, SECRET);
+        const hostPolls = [{ id: "poll-1", sessionId: "session-1", question: "Q?", options: [] }];
+        organizerFindFirst.mockResolvedValue({ id: "org-1" });
+        pollFindMany.mockResolvedValue(hostPolls);
+
+        const server = app.listen(0);
+        try {
+            const { port } = server.address() as AddressInfo;
+            const baseUrl = `http://127.0.0.1:${port}/api/v1/sessions/session-1/polls`;
+
+            for (let i = 0; i < SESSION_POLLS_RATE_LIMIT_MAX; i++) {
+                const resp = await fetch(baseUrl, {
+                    headers: { Authorization: `Bearer ${hostToken}` },
+                });
+                expect(resp.status).toBe(200);
+                if (i === 0) {
+                    expect(resp.headers.get("ratelimit")).toBeTruthy();
+                }
+            }
+            expect(organizerFindFirst).toHaveBeenCalledTimes(SESSION_POLLS_RATE_LIMIT_MAX);
+            expect(pollFindMany).toHaveBeenCalledTimes(SESSION_POLLS_RATE_LIMIT_MAX);
+
+            const blockedResp = await fetch(baseUrl, {
+                headers: { Authorization: `Bearer ${hostToken}` },
+            });
+            expect(blockedResp.status).toBe(429);
+            expect(await blockedResp.json()).toEqual({
+                success: false,
+                error: "Too many requests, please try again later.",
+            });
+            expect(organizerFindFirst).toHaveBeenCalledTimes(SESSION_POLLS_RATE_LIMIT_MAX);
+            expect(pollFindMany).toHaveBeenCalledTimes(SESSION_POLLS_RATE_LIMIT_MAX);
+        } finally {
+            server.close();
+        }
+    });
+
+    it("throttles repeated unauthorized requests before authMiddleware and organizer queries", async () => {
+        const app = express();
+        app.use("/api/v1/sessions", sessionRouter);
+
+        const server = app.listen(0);
+        try {
+            const { port } = server.address() as AddressInfo;
+            const baseUrl = `http://127.0.0.1:${port}/api/v1/sessions/session-1/polls`;
+
+            for (let i = 0; i < SESSION_POLLS_RATE_LIMIT_MAX; i++) {
+                const resp = await fetch(baseUrl);
+                expect(resp.status).toBe(401);
+            }
+
+            const throttledResp = await fetch(baseUrl);
+            expect(throttledResp.status).toBe(429);
+            expect(organizerFindFirst).not.toHaveBeenCalled();
+            expect(pollFindMany).not.toHaveBeenCalled();
         } finally {
             server.close();
         }
