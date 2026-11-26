@@ -263,6 +263,16 @@ export function getRecordedPolls(sessionId: string): ActivePoll[] {
     return recordedPollsCache.get(sessionId) ?? [];
 }
 
+export function listTrackedPollSessionIds(): string[] {
+    return Array.from(
+        new Set([
+            ...activePolls.keys(),
+            ...recordedPollsCache.keys(),
+            ...pollTimers.keys(),
+        ]),
+    );
+}
+
 export function clearSessionPolls(sessionId: string) {
     const timer = pollTimers.get(sessionId);
     if (timer) {
