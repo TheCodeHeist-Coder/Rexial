@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { CanceledError } from 'axios';
+import { AxiosError, CanceledError } from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { GeneratedQuestion, RequestOptions } from '../services/genaiApi';
 import AiQuizGenerator from './AiQuizGenerator';
@@ -236,11 +236,14 @@ describe('Reviewing', () => {
         await choosePdf(user);
         await generate(user, [question('Q1'), question('Q2'), question('Q3')]);
 
-        onSave.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('network'));
+        onSave.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new AxiosError('network'));
         await user.click(screen.getByRole('button', { name: 'Add 3 to Quiz' }));
 
         expect(await screen.findByRole('alert')).toHaveTextContent('Saved 1 of 3 questions');
+        expect(screen.getByRole('alert')).toHaveTextContent('Check whether the highlighted question reached the quiz');
         expect(draftTexts()).toEqual(['Q2', 'Q3']);
+        expect(within(screen.getAllByTestId('draft')[0]).getByText('This question could not be saved')).toBeVisible();
+        expect(within(screen.getAllByTestId('draft')[1]).queryByText('This question could not be saved')).toBeNull();
         // the question that did save shows up in the quiz straight away
         expect(onSaved).toHaveBeenCalledTimes(1);
         expect(onClose).not.toHaveBeenCalled();
@@ -251,6 +254,27 @@ describe('Reviewing', () => {
         const savedTexts = onSave.mock.calls.map(([q]) => q.text);
         expect(savedTexts).toEqual(['Q1', 'Q2', 'Q2', 'Q3']);
         expect(savedTexts.filter((t) => t === 'Q1')).toHaveLength(1);
+    });
+
+    it.each([
+        [400, 'Question text is too long.', 'Edit it before retrying.'],
+        [403, "You don't have access to this quiz", 'Check that you are signed in as an organizer.'],
+    ])('shows the reason and next step for HTTP %i', async (status, detail, hint) => {
+        const { user, onSave, onSaved, onClose } = setup();
+        await choosePdf(user);
+        await generate(user, [question('Q1'), question('Q2')]);
+        onSave.mockRejectedValueOnce(Object.assign(new AxiosError(), {
+            response: { status, data: { error: detail } },
+        }));
+
+        await user.click(screen.getByRole('button', { name: 'Add 2 to Quiz' }));
+
+        expect(await screen.findByRole('alert')).toHaveTextContent(detail);
+        expect(screen.getByRole('alert')).toHaveTextContent(hint);
+        expect(draftTexts()).toEqual(['Q1', 'Q2']);
+        expect(onSave).toHaveBeenCalledTimes(1);
+        expect(onSaved).not.toHaveBeenCalled();
+        expect(onClose).not.toHaveBeenCalled();
     });
 });
 

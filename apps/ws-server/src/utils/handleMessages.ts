@@ -701,6 +701,10 @@ export const handleMessage = async (client: Client, data: any) => {
                     }
                 }
             );
+            if (!poll) {
+                sendError(client, 'POLL_ALREADY_ACTIVE', 'End the current poll before starting another.');
+                break;
+            }
 
             broadcastToSession(sessionId, 'poll:started', {
                 poll: sanitizePoll(poll),

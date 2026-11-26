@@ -56,6 +56,24 @@ describe("CreatePollModal", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(/Please provide a question/i);
   });
 
+  it("blocks launch while a poll is active and re-enables it when that poll ends", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    const props = { isOpen: true, onClose: vi.fn(), onSubmit };
+    const { rerender } = render(<CreatePollModal {...props} hasActivePoll />);
+    await user.click(screen.getByRole("button", { name: /Yes \/ No/i }));
+    const launch = screen.getByRole("button", { name: /Launch Poll/i });
+    expect(launch).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent(/End the current poll/i);
+    await user.click(launch);
+    expect(onSubmit).not.toHaveBeenCalled();
+
+    rerender(<CreatePollModal {...props} hasActivePoll={false} />);
+    expect(launch).toBeEnabled();
+    await user.click(launch);
+    expect(onSubmit).toHaveBeenCalledOnce();
+  });
+
   it("submits valid poll data with duration and cleaned options", async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn();

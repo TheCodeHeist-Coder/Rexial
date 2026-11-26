@@ -5,6 +5,7 @@ import type { PollPreset } from "./types";
 
 interface CreatePollModalProps {
   isOpen: boolean;
+  hasActivePoll?: boolean;
   onClose: () => void;
   onSubmit: (data: {
     question: string;
@@ -52,6 +53,7 @@ const DURATIONS = [
 
 export default function CreatePollModal({
   isOpen,
+  hasActivePoll = false,
   onClose,
   onSubmit,
   currentQuestionText,
@@ -97,6 +99,7 @@ export default function CreatePollModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (hasActivePoll) return;
     const cleanQuestion = question.trim();
     if (!cleanQuestion) {
       setError("Please provide a question for the poll.");
@@ -282,7 +285,11 @@ export default function CreatePollModal({
             </div>
           </div>
 
-          {error && (
+          {hasActivePoll ? (
+            <p role="status" className="text-sm text-amber-300 font-secondary mt-2">
+              End the current poll before starting another.
+            </p>
+          ) : error && (
             <p role="alert" className="text-xs text-red-400 font-secondary mt-2">
               {error}
             </p>
@@ -299,7 +306,8 @@ export default function CreatePollModal({
             </button>
             <button
               type="submit"
-              className="btn-primary py-2.5 px-6 rounded-xl text-sm font-bold bg-linear-to-b from-pink-500 to-pink-700 hover:from-pink-600 hover:to-pink-800 text-black font-secondary tracking-wide shadow-lg shadow-pink-700/30 transition-all cursor-pointer active:scale-95"
+              disabled={hasActivePoll}
+              className="btn-primary py-2.5 px-6 rounded-xl text-sm font-bold bg-linear-to-b from-pink-500 to-pink-700 hover:from-pink-600 hover:to-pink-800 text-black font-secondary tracking-wide shadow-lg shadow-pink-700/30 transition-all cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Launch Poll 🚀
             </button>

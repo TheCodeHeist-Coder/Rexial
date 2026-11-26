@@ -81,13 +81,8 @@ export function createPoll(
     questionIndex?: number,
     duration?: number,
     onExpire?: () => void,
-): ActivePoll {
-    // Clear any existing active poll timer
-    const existingTimer = pollTimers.get(sessionId);
-    if (existingTimer) {
-        clearTimeout(existingTimer);
-        pollTimers.delete(sessionId);
-    }
+): ActivePoll | null {
+    if (getActivePoll(sessionId)?.status === 'ACTIVE') return null;
 
     const pollId = randomUUID();
     const cleanOptions: PollOptionState[] = options
@@ -261,6 +256,16 @@ export function dismissPoll(sessionId: string, pollId: string): boolean {
 
 export function getRecordedPolls(sessionId: string): ActivePoll[] {
     return recordedPollsCache.get(sessionId) ?? [];
+}
+
+export function listTrackedPollSessionIds(): string[] {
+    return Array.from(
+        new Set([
+            ...activePolls.keys(),
+            ...recordedPollsCache.keys(),
+            ...pollTimers.keys(),
+        ]),
+    );
 }
 
 export function clearSessionPolls(sessionId: string) {
