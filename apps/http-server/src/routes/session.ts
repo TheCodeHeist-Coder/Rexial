@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { getLeaderboardController, getSessionPollsController, joinQuizController } from "../controllers/sessionController";
-import { optionalAuthMiddleware } from "../middlewares/authmiddleware";
+import { authMiddleware, optionalAuthMiddleware } from "../middlewares/authmiddleware";
 
 const router = Router();
 
@@ -13,8 +13,8 @@ router.post("/join", optionalAuthMiddleware, joinQuizController)
 // get leaderboard
 router.get('/:sessionId/leaderboard', getLeaderboardController);
 
-// get session polls
-router.get('/:sessionId/polls', getSessionPollsController);
+// get session polls (restricted to accepted organizers of the session's quiz)
+router.get('/:sessionId/polls', authMiddleware, getSessionPollsController);
 
 
 

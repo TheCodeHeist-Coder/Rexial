@@ -156,6 +156,23 @@ export const getSessionPollsController = async (req: Request, res: Response) => 
             return errorResponse(res, 400, "Session ID is required");
         }
 
+        if (!req.userId) {
+            return errorResponse(res, 401, "You're not authorized...");
+        }
+
+        const organizer = await prisma.quizOrganizer.findFirst({
+            where: {
+                userId: req.userId,
+                inviteStatus: "ACCEPTED",
+                quiz: { quizSessions: { some: { id: String(sessionId) } } },
+            },
+            select: { id: true },
+        });
+
+        if (!organizer) {
+            return errorResponse(res, 403, "You don't have access to this session's polls");
+        }
+
         const polls = await prisma.poll.findMany({
             where: { sessionId: String(sessionId) },
             include: {
