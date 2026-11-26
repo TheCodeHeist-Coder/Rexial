@@ -73,6 +73,7 @@ describe("pollReaper", () => {
         "clears active polls, timers, and recorded cache immediately when session is %s",
         async (dbStatus) => {
             const poll = createPoll(sessionId, "Will clean?", ["Yes", "No"], 0, 60);
+            if (!poll) throw new Error("Expected first poll to start");
             await recordPoll(sessionId, poll.id);
             expect(getActivePoll(sessionId)).not.toBeNull();
             expect(getRecordedPolls(sessionId)).toHaveLength(1);
@@ -100,6 +101,7 @@ describe("pollReaper", () => {
 
     it("reaps an empty abandoned session after EMPTY_SESSION_GRACE_MS from disconnect", async () => {
         const poll = createPoll(sessionId, "Abandoned?", ["Yes", "No"]);
+        if (!poll) throw new Error("Expected first poll to start");
         await recordPoll(sessionId, poll.id);
         const host = connectClient(sessionId, "ORGANIZER");
         mocks.findMany.mockResolvedValue([{ id: sessionId, status: "IN_PROGRESS" }]);

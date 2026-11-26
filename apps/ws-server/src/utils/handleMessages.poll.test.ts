@@ -139,6 +139,39 @@ describe("Live polling feature", () => {
         expect(startEvents[0]?.payload.poll.options[0].text).toBe("Yes, very");
     });
 
+    it("preserves the first poll's votes and expiry when a second launch is rejected", async () => {
+        vi.useFakeTimers();
+        try {
+            const host = await joinedHost();
+            const participant = await joinedParticipant();
+            const launch = {
+                sessionId, token: hostToken(), question: "First poll?", options: ["Yes", "No"], duration: 5,
+            };
+            await handleMessage(host, { type: "poll:create", payload: launch });
+            const first = broadcasts().find(event => event.type === "poll:started")?.payload.poll;
+            await handleMessage(participant, {
+                type: "poll:vote",
+                payload: { sessionId, pollId: first.id, optionId: first.options[0].id },
+            });
+
+            await handleMessage(host, {
+                type: "poll:create", payload: { ...launch, question: "Second poll?" },
+            });
+            expect(sent(host)).toContainEqual(expect.objectContaining({
+                type: "error",
+                payload: expect.objectContaining({ code: "POLL_ALREADY_ACTIVE" }),
+            }));
+            expect(broadcasts().filter(event => event.type === "poll:started")).toHaveLength(1);
+
+            await vi.advanceTimersByTimeAsync(5000);
+            expect(broadcasts().find(event => event.type === "poll:ended")?.payload.poll)
+                .toMatchObject({ id: first.id, status: "ENDED", totalVotes: 1 });
+        } finally {
+            clearSessionPolls(sessionId);
+            vi.useRealTimers();
+        }
+    });
+
     it("rejects poll:create from a regular participant", async () => {
         const p = await joinedParticipant();
 
@@ -371,6 +404,15 @@ describe("Live polling feature", () => {
 
         const errors = sent(p1).filter(m => m.type === "error");
         expect(errors[0]?.payload.code).toBe("POLL_INACTIVE");
+
+        await handleMessage(host, {
+            type: "poll:create",
+            payload: { sessionId, token: hostToken(), question: "Next poll?", options: ["A", "B"] },
+        });
+        const starts = broadcasts().filter(event => event.type === "poll:started");
+        expect(starts).toHaveLength(2);
+        expect(starts[1]?.payload.poll).toMatchObject({ question: "Next poll?", status: "ACTIVE" });
+        expect(starts[1]?.payload.poll.id).not.toBe(pollStarted.id);
     });
 
     it("allows organizer to record the poll result at the moment", async () => {
