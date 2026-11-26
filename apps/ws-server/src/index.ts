@@ -8,6 +8,7 @@ import { startSessionSubscriber } from './utils/broadcastTosession.js';
 import { invalidateParticipants } from './utils/cache.js';
 import { drainAll } from './utils/answerQueue.js';
 import { createMetricsServer } from './utils/metrics.js';
+import { markSessionDisconnected, startPollReaper } from './utils/pollReaper.js';
 
 
 
@@ -57,7 +58,10 @@ const heartbeat = setInterval(() => {
     }
 }, HEARTBEAT_INTERVAL_MS);
 
-wss.on('close', () => clearInterval(heartbeat));
+wss.on('close', () => {
+    clearInterval(heartbeat);
+    clearInterval(pollReaper);
+});
 
 
 /**
@@ -77,6 +81,7 @@ for (const signal of ['SIGTERM', 'SIGINT'] as const) {
 
         console.log(`[shutdown] ${signal} received, flushing buffered answers`);
         clearInterval(heartbeat);
+        clearInterval(pollReaper);
 
         try {
             await drainAll();
@@ -103,6 +108,7 @@ process.on('unhandledRejection', (reason) => {
 
 
 startSessionSubscriber();
+const pollReaper = startPollReaper();
 
 wss.on('connection', (ws: WebSocket) => {
 
@@ -143,6 +149,10 @@ wss.on('connection', (ws: WebSocket) => {
         console.log('Client disconnected...', client.participantId ?? 'unknown participant');
         clients.delete(client);
         unindexClient(client);
+
+        if (client.sessionId) {
+            markSessionDisconnected(client.sessionId);
+        }
 
         if (client.sessionId && client.role === 'PARTICIPANT') {
             // ws does not await this handler, so a Redis error here would
