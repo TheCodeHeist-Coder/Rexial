@@ -81,13 +81,8 @@ export function createPoll(
     questionIndex?: number,
     duration?: number,
     onExpire?: () => void,
-): ActivePoll {
-    // Clear any existing active poll timer
-    const existingTimer = pollTimers.get(sessionId);
-    if (existingTimer) {
-        clearTimeout(existingTimer);
-        pollTimers.delete(sessionId);
-    }
+): ActivePoll | null {
+    if (getActivePoll(sessionId)?.status === 'ACTIVE') return null;
 
     const pollId = randomUUID();
     const cleanOptions: PollOptionState[] = options

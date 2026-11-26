@@ -79,6 +79,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
   const [showRecordedPolls, setShowRecordedPolls] = useState(false);
   const [recordedPolls, setRecordedPolls] = useState<Poll[]>([]);
   const [pollNotice, setPollNotice] = useState<string | null>(null);
+  const [pollLaunchError, setPollLaunchError] = useState<string | null>(null);
 
 
 
@@ -281,6 +282,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
             // an organizer of the quiz.
             console.error('[ws]', payload?.code, payload?.message);
             if (payload?.code === 'NO_QUESTIONS') setStartError(payload.message);
+            if (payload?.code === 'POLL_ALREADY_ACTIVE') setPollLaunchError(payload.message);
             break;
           case 'participants:sync':
             setParticipants(payload.participants);
@@ -400,6 +402,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
           case 'poll:snapshot':
           case 'poll:started':
             setActivePoll(payload.poll);
+            setPollLaunchError(null);
             break;
           case 'poll:updated':
             setActivePoll((prev) => (prev ? { ...prev, ...payload.poll } : payload.poll));
@@ -409,6 +412,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
             break;
           case 'poll:ended':
             setActivePoll((prev) => (prev ? { ...prev, ...payload.poll, status: 'ENDED' } : payload.poll));
+            setPollLaunchError(null);
             break;
           case 'poll:recorded':
             setActivePoll((prev) =>
@@ -429,6 +433,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
             break;
           case 'poll:dismissed':
             setActivePoll(null);
+            setPollLaunchError(null);
             break;
           case 'poll:recorded-list':
             setRecordedPolls(payload.polls || []);
@@ -1297,6 +1302,15 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
         </div>
       )}
 
+      {pollLaunchError && (
+        <div
+          role="alert"
+          className="fixed bottom-6 right-6 z-100 max-w-[calc(100%-3rem)] rounded-2xl border border-red-500/50 bg-red-950 px-4 py-3 text-sm text-red-100"
+        >
+          {pollLaunchError}
+        </div>
+      )}
+
       {/* Active Poll Overlay */}
       {activePoll && (
         <ActivePollOverlay
@@ -1315,6 +1329,7 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
       {showCreatePoll && (
         <CreatePollModal
           isOpen={showCreatePoll}
+          hasActivePoll={activePoll?.status === 'ACTIVE'}
           onClose={() => setShowCreatePoll(false)}
           onSubmit={handleCreatePoll}
           currentQuestionText={currentQuestion?.text}
