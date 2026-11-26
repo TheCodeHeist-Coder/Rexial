@@ -176,6 +176,59 @@ describe("Live polling feature", () => {
         expect(errors[0]?.payload.code).toBe("INVALID_POLL");
     });
 
+    it("rejects poll:create with unbounded input", async () => {
+        const host = await joinedHost();
+        const cases: Array<Record<string, unknown>> = [
+            { question: "Q".repeat(301), options: ["A", "B"] },
+            { question: "Q?", options: Array.from({ length: 11 }, (_, i) => `Option ${i + 1}`) },
+            { question: "Q?", options: ["A".repeat(121), "B"] },
+            { question: "Q?", options: ["A", "B"], duration: 999999 },
+            { question: "Q?", options: ["A", "B"], duration: 3 },
+            { question: "Q?", options: ["A", "B"], duration: 30.5 },
+        ];
+
+        for (const payload of cases) {
+            await handleMessage(host, {
+                type: "poll:create",
+                payload: { sessionId, token: hostToken(), ...payload },
+            });
+        }
+
+        expect(broadcasts().filter(b => b.type === "poll:started")).toHaveLength(0);
+        const errors = sent(host).filter(m => m.type === "error");
+        expect(errors).toHaveLength(cases.length);
+        expect(errors.every((e) => e.payload.code === "INVALID_POLL")).toBe(true);
+        expect(errors.map((e) => e.payload.message)).toEqual([
+            "Poll question must be at most 300 characters.",
+            "Poll must have at most 10 options.",
+            "Each poll option must be at most 120 characters.",
+            "Poll duration must be a whole number from 5 to 600 seconds.",
+            "Poll duration must be a whole number from 5 to 600 seconds.",
+            "Poll duration must be a whole number from 5 to 600 seconds.",
+        ]);
+    });
+
+    it("accepts a poll at the upper bounds", async () => {
+        const host = await joinedHost();
+
+        await handleMessage(host, {
+            type: "poll:create",
+            payload: {
+                sessionId,
+                token: hostToken(),
+                question: "Q".repeat(300),
+                options: Array.from({ length: 10 }, () => "O".repeat(120)),
+                duration: 600,
+            },
+        });
+
+        const startEvents = broadcasts().filter(b => b.type === "poll:started");
+        expect(startEvents.length).toBe(1);
+        expect(startEvents[0]?.payload.poll.options).toHaveLength(10);
+        expect(startEvents[0]?.payload.poll.duration).toBe(600);
+        clearSessionPolls(sessionId);
+    });
+
     it("allows participant to vote and updates percentages in real-time", async () => {
         const host = await joinedHost();
         const p1 = await joinedParticipant("p-1");
