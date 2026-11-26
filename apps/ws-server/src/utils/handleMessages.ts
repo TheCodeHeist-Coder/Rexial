@@ -41,6 +41,11 @@ import {
     getRecordedPolls,
     sanitizePoll,
     clearSessionPolls,
+    MAX_POLL_OPTIONS,
+    MAX_POLL_QUESTION_LENGTH,
+    MAX_POLL_OPTION_LENGTH,
+    MAX_POLL_DURATION,
+    MIN_POLL_DURATION,
 } from "./pollManager.js";
 
 
@@ -634,8 +639,35 @@ export const handleMessage = async (client: Client, data: any) => {
                 sendError(client, 'INVALID_POLL', 'Poll question cannot be empty.');
                 break;
             }
-            if (!Array.isArray(options) || options.filter((o: unknown) => typeof o === 'string' && o.trim().length > 0).length < 2) {
+            if (question.trim().length > MAX_POLL_QUESTION_LENGTH) {
+                sendError(client, 'INVALID_POLL', `Poll question must be at most ${MAX_POLL_QUESTION_LENGTH} characters.`);
+                break;
+            }
+            const cleanOptions = Array.isArray(options)
+                ? options.filter((o: unknown) => typeof o === 'string' && o.trim().length > 0)
+                : [];
+            if (!Array.isArray(options) || cleanOptions.length < 2) {
                 sendError(client, 'INVALID_POLL', 'Poll must have at least two options.');
+                break;
+            }
+            if (cleanOptions.length > MAX_POLL_OPTIONS) {
+                sendError(client, 'INVALID_POLL', `Poll must have at most ${MAX_POLL_OPTIONS} options.`);
+                break;
+            }
+            if (cleanOptions.some((o) => (o as string).trim().length > MAX_POLL_OPTION_LENGTH)) {
+                sendError(client, 'INVALID_POLL', `Each poll option must be at most ${MAX_POLL_OPTION_LENGTH} characters.`);
+                break;
+            }
+            if (
+                duration !== undefined &&
+                duration !== null &&
+                (!Number.isInteger(duration) || duration < MIN_POLL_DURATION || duration > MAX_POLL_DURATION)
+            ) {
+                sendError(
+                    client,
+                    'INVALID_POLL',
+                    `Poll duration must be a whole number from ${MIN_POLL_DURATION} to ${MAX_POLL_DURATION} seconds.`,
+                );
                 break;
             }
 

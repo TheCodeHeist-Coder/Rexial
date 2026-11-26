@@ -1,6 +1,18 @@
 import { randomUUID } from "crypto";
 import { prisma } from "@repo/db";
 
+/**
+ * Bounds for a poll created over the socket. The host UI already caps these
+ * lower (6 options, 200-character questions, 80-character options, preset
+ * timers), so these are the backstop for anyone talking to the socket
+ * directly. They mirror the question bounds in `questionInput.ts`.
+ */
+export const MAX_POLL_OPTIONS = 10;
+export const MAX_POLL_QUESTION_LENGTH = 300;
+export const MAX_POLL_OPTION_LENGTH = 120;
+export const MAX_POLL_DURATION = 600; // 10 minutes
+export const MIN_POLL_DURATION = 5;
+
 export interface PollOptionState {
     id: string;
     text: string;
