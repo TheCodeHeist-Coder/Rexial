@@ -37,7 +37,7 @@ export default function ActivePollOverlay({
       return;
     }
 
-    const elapsed = Math.floor((Date.now() - poll.createdAt) / 1000);
+    const elapsed = Math.max(0, Math.floor((Date.now() - poll.createdAt) / 1000));
     const initialRemaining = Math.max(0, poll.duration - elapsed);
     setSecondsRemaining(initialRemaining);
 
