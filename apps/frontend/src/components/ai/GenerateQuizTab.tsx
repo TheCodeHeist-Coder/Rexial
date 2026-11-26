@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { isAxiosError } from 'axios';
 import { BiTrash } from 'react-icons/bi';
 import { BsStars } from 'react-icons/bs';
 import { LuLoader, LuRefreshCw } from 'react-icons/lu';
@@ -61,6 +62,7 @@ function GenerateQuizTab({ file, existingQuestions, onSave, onSaved, onClose }: 
     const [regeneratingId, setRegeneratingId] = useState<number | null>(null);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
+    const [failedDraftId, setFailedDraftId] = useState<number | null>(null);
 
     const generation = useAiRequest();
     const regeneration = useAiRequest();
@@ -184,29 +186,40 @@ function GenerateQuizTab({ file, existingQuestions, onSave, onSaved, onClose }: 
 
         setSaving(true);
         setError('');
+        setFailedDraftId(null);
 
         let saved = 0;
 
         try {
-            // Saved sequentially: the API takes one question per request,
-            // and this keeps ordering stable in the quiz. Each question
-            // leaves the list as soon as it is stored, so a retry after a
-            // failure never saves it twice.
+            // Remove only confirmed saves, so retrying won't submit those drafts again.
             for (const q of chosen) {
-                await onSave(q, seconds);
+                try {
+                    await onSave(q, seconds);
+                } catch (err) {
+                    const response = isAxiosError<{ error?: unknown }>(err) ? err.response : undefined;
+                    const status = response?.status;
+                    const detail = typeof response?.data?.error === 'string' ? response.data.error : '';
+                    let reason = 'The highlighted question could not be saved. Check the quiz before retrying.';
+
+                    if (status === 400 || status === 422) {
+                        reason = `${detail || 'The quiz rejected the highlighted question.'} Edit it before retrying.`;
+                    } else if (status === 401 || status === 403) {
+                        reason = `${detail || 'Your account could not save questions to this quiz.'} Check that you are signed in as an organizer.`;
+                    } else if (isAxiosError(err) && !response) {
+                        reason = 'The connection was interrupted. Check whether the highlighted question reached the quiz before retrying.';
+                    }
+
+                    if (saved > 0) onSaved();
+                    setFailedDraftId(q.id);
+                    setError(`Saved ${saved} of ${chosen.length} questions. ${reason}`);
+                    return;
+                }
                 saved += 1;
                 setDrafts((prev) => prev.filter((d) => d.id !== q.id));
             }
 
             onSaved();
             onClose();
-        } catch {
-            if (saved > 0) onSaved();
-
-            setError(
-                `Saved ${saved} of ${chosen.length} questions. The rest are still ` +
-                    'below. Try adding them again.'
-            );
         } finally {
             setSaving(false);
         }
@@ -380,17 +393,25 @@ function GenerateQuizTab({ file, existingQuestions, onSave, onSaved, onClose }: 
                     <div className="space-y-4">
                         {drafts.map((q) => {
                             const regenerating = regeneratingId === q.id;
+                            const failed = failedDraftId === q.id;
 
                             return (
                                 <div
                                     key={q.id}
                                     data-testid="draft"
                                     className={`rounded-xl border py-5 px-6 transition-colors ${
-                                        q.selected
+                                        failed
+                                            ? 'bg-rose-900/10 border-rose-500'
+                                            : q.selected
                                             ? 'bg-zinc-900/50 border-purple-800/40'
                                             : 'bg-zinc-900/20 border-gray-800/40 opacity-50'
                                     } ${regenerating ? 'animate-pulse' : ''}`}
                                 >
+                                    {failed && (
+                                        <p className="mb-3 text-sm font-semibold text-rose-300">
+                                            This question could not be saved
+                                        </p>
+                                    )}
                                     <div className="flex items-start gap-4 mb-4">
                                         <input
                                             type="checkbox"
