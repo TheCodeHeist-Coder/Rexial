@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
         quizOrganizer: { findFirst: vi.fn() },
         quizSession: { updateMany: vi.fn(), update: vi.fn() },
         participant: { findUnique: vi.fn() },
-        poll: { upsert: vi.fn(), create: vi.fn(), findMany: vi.fn() },
+        poll: { create: vi.fn(), update: vi.fn(), findMany: vi.fn() },
     },
     broadcastToSession: vi.fn(),
     getCachedSession: vi.fn(),
@@ -51,6 +51,11 @@ vi.mock("./answerQueue.js", () => ({
     enqueueAnswer: vi.fn(),
     countAnswered: vi.fn(),
     drainSession: mocks.drainSession,
+}));
+vi.mock("./pollVoteQueue.js", () => ({
+    enqueuePollVote: vi.fn(() => true),
+    drainPollVotes: vi.fn(),
+    drainAllPollVotes: vi.fn(),
 }));
 
 import { handleMessage } from "./handleMessages.js";
@@ -106,10 +111,10 @@ async function joinedParticipant(participantId = "p-1"): Promise<Client> {
 }
 
 describe("Live polling feature", () => {
-    beforeEach(() => {
+    beforeEach(async () => {
         vi.clearAllMocks();
         sessionId = `sess-poll-${++nextSession}`;
-        clearSessionPolls(sessionId);
+        await clearSessionPolls(sessionId);
         process.env.JWT_SECRET = SECRET;
     });
 
@@ -137,6 +142,17 @@ describe("Live polling feature", () => {
         });
         expect(startEvents[0]?.payload.poll.options).toHaveLength(3);
         expect(startEvents[0]?.payload.poll.options[0].text).toBe("Yes, very");
+        expect(mocks.prisma.poll.create).toHaveBeenCalledWith(expect.objectContaining({
+            data: expect.objectContaining({
+                sessionId,
+                question: "Is this question too hard?",
+                options: {
+                    create: expect.arrayContaining([
+                        expect.objectContaining({ text: "Yes, very", order: 0, voteCount: 0 }),
+                    ]),
+                },
+            }),
+        }));
     });
 
     it("preserves the first poll's votes and expiry when a second launch is rejected", async () => {
@@ -167,7 +183,7 @@ describe("Live polling feature", () => {
             expect(broadcasts().find(event => event.type === "poll:ended")?.payload.poll)
                 .toMatchObject({ id: first.id, status: "ENDED", totalVotes: 1 });
         } finally {
-            clearSessionPolls(sessionId);
+            await clearSessionPolls(sessionId);
             vi.useRealTimers();
         }
     });
@@ -259,7 +275,7 @@ describe("Live polling feature", () => {
         expect(startEvents.length).toBe(1);
         expect(startEvents[0]?.payload.poll.options).toHaveLength(10);
         expect(startEvents[0]?.payload.poll.duration).toBe(600);
-        clearSessionPolls(sessionId);
+        await clearSessionPolls(sessionId);
     });
 
     it("allows participant to vote and updates percentages in real-time", async () => {
@@ -390,6 +406,10 @@ describe("Live polling feature", () => {
         const endEvents = broadcasts().filter(b => b.type === "poll:ended");
         expect(endEvents.length).toBe(1);
         expect(endEvents[0]?.payload.poll.status).toBe("ENDED");
+        expect(mocks.prisma.poll.update).toHaveBeenCalledWith(expect.objectContaining({
+            where: { id: pollStarted.id },
+            data: expect.objectContaining({ status: "ENDED", endedAt: expect.any(Date) }),
+        }));
 
         // Voting after end is rejected
         await handleMessage(p1, {
@@ -417,7 +437,7 @@ describe("Live polling feature", () => {
 
     it("allows organizer to record the poll result at the moment", async () => {
         const host = await joinedHost();
-        mocks.prisma.poll.upsert.mockResolvedValue({ id: "saved-1" });
+        mocks.prisma.poll.update.mockResolvedValue({ id: "saved-1" });
 
         await handleMessage(host, {
             type: "poll:create",
@@ -444,12 +464,47 @@ describe("Live polling feature", () => {
         expect(recordEvents.length).toBe(1);
         expect(recordEvents[0]?.payload.pollId).toBe(pollStarted.id);
         expect(recordEvents[0]?.payload.poll.isRecorded).toBe(true);
-        expect(mocks.prisma.poll.upsert).toHaveBeenCalled();
+        expect(mocks.prisma.poll.update).toHaveBeenCalledWith({
+            where: { id: pollStarted.id },
+            data: { isRecorded: true, recordedAt: expect.any(Date) },
+        });
+    });
+
+    it("does not confirm a poll as recorded when the database update fails", async () => {
+        const host = await joinedHost();
+        const log = vi.spyOn(console, "error").mockImplementation(() => {});
+        mocks.prisma.poll.update.mockRejectedValueOnce(new Error("database unavailable"));
+
+        try {
+            await handleMessage(host, {
+                type: "poll:create",
+                payload: {
+                    sessionId,
+                    token: hostToken(),
+                    question: "Important Poll",
+                    options: ["Yes", "No"],
+                },
+            });
+            const created = broadcasts().find((event) => event.type === "poll:started")?.payload.poll;
+
+            await handleMessage(host, {
+                type: "poll:record",
+                payload: { sessionId, token: hostToken(), pollId: created.id },
+            });
+
+            expect(broadcasts().some((event) => event.type === "poll:recorded")).toBe(false);
+            expect(sent(host)).toContainEqual(expect.objectContaining({
+                type: "error",
+                payload: expect.objectContaining({ code: "POLL_PERSISTENCE_FAILED" }),
+            }));
+        } finally {
+            log.mockRestore();
+        }
     });
 
     it("allows organizer to dismiss poll and get recorded polls", async () => {
         const host = await joinedHost();
-        mocks.prisma.poll.upsert.mockResolvedValue({ id: "saved-1" });
+        mocks.prisma.poll.update.mockResolvedValue({ id: "saved-1" });
 
         await handleMessage(host, {
             type: "poll:create",

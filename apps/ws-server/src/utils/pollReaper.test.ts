@@ -3,13 +3,14 @@ import WebSocket from "ws";
 
 const mocks = vi.hoisted(() => ({
     findMany: vi.fn(),
-    pollUpsert: vi.fn(),
+    pollCreate: vi.fn(),
+    pollUpdate: vi.fn(),
 }));
 
 vi.mock("@repo/db", () => ({
     prisma: {
         quizSession: { findMany: mocks.findMany },
-        poll: { upsert: mocks.pollUpsert },
+        poll: { create: mocks.pollCreate, update: mocks.pollUpdate },
     },
 }));
 
@@ -50,18 +51,19 @@ function connectClient(sid: string, role: Client["role"], participantId?: string
 }
 
 describe("pollReaper", () => {
-    beforeEach(() => {
+    beforeEach(async () => {
         vi.clearAllMocks();
-        mocks.pollUpsert.mockResolvedValue({ id: "saved" });
+        mocks.pollCreate.mockResolvedValue({ id: "saved" });
+        mocks.pollUpdate.mockResolvedValue({ id: "saved" });
         sessionId = `sess-reap-${++nextId}`;
-        clearSessionPolls(sessionId);
+        await clearSessionPolls(sessionId);
     });
 
-    afterEach(() => {
+    afterEach(async () => {
         for (const c of trackedClients.splice(0)) {
             unindexClient(c);
         }
-        clearSessionPolls(sessionId);
+        await clearSessionPolls(sessionId);
     });
 
     it("does not query Postgres when no poll state is tracked", async () => {
@@ -72,7 +74,7 @@ describe("pollReaper", () => {
     it.each(["COMPLETED", "CANCELLED", null])(
         "clears active polls, timers, and recorded cache immediately when session is %s",
         async (dbStatus) => {
-            const poll = createPoll(sessionId, "Will clean?", ["Yes", "No"], 0, 60);
+            const poll = await createPoll(sessionId, "Will clean?", ["Yes", "No"], 0, 60);
             if (!poll) throw new Error("Expected first poll to start");
             await recordPoll(sessionId, poll.id);
             expect(getActivePoll(sessionId)).not.toBeNull();
@@ -89,7 +91,7 @@ describe("pollReaper", () => {
     );
 
     it("keeps polls alive while an organizer socket is connected", async () => {
-        createPoll(sessionId, "Live host?", ["Yes", "No"], 0, 60);
+        await createPoll(sessionId, "Live host?", ["Yes", "No"], 0, 60);
         connectClient(sessionId, "ORGANIZER");
         mocks.findMany.mockResolvedValue([{ id: sessionId, status: "IN_PROGRESS" }]);
 
@@ -100,7 +102,7 @@ describe("pollReaper", () => {
     });
 
     it("reaps an empty abandoned session after EMPTY_SESSION_GRACE_MS from disconnect", async () => {
-        const poll = createPoll(sessionId, "Abandoned?", ["Yes", "No"]);
+        const poll = await createPoll(sessionId, "Abandoned?", ["Yes", "No"]);
         if (!poll) throw new Error("Expected first poll to start");
         await recordPoll(sessionId, poll.id);
         const host = connectClient(sessionId, "ORGANIZER");
@@ -120,7 +122,7 @@ describe("pollReaper", () => {
     });
 
     it("preserves polls if the organizer reconnects before EMPTY_SESSION_GRACE_MS expires", async () => {
-        createPoll(sessionId, "Reloading host?", ["A", "B"]);
+        await createPoll(sessionId, "Reloading host?", ["A", "B"]);
         const host = connectClient(sessionId, "ORGANIZER");
         mocks.findMany.mockResolvedValue([{ id: sessionId, status: "WAITING" }]);
 
@@ -136,7 +138,7 @@ describe("pollReaper", () => {
     });
 
     it("waits ORPHANED_HOST_GRACE_MS when participant sockets remain connected without an organizer", async () => {
-        createPoll(sessionId, "Orphaned room?", ["A", "B"]);
+        await createPoll(sessionId, "Orphaned room?", ["A", "B"]);
         connectClient(sessionId, "PARTICIPANT", "p-1");
         mocks.findMany.mockResolvedValue([{ id: sessionId, status: "IN_PROGRESS" }]);
 

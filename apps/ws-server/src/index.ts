@@ -7,6 +7,7 @@ import { handleMessage } from './utils/handleMessages.js';
 import { startSessionSubscriber } from './utils/broadcastTosession.js';
 import { invalidateParticipants } from './utils/cache.js';
 import { drainAll } from './utils/answerQueue.js';
+import { drainAllPollVotes } from './utils/pollVoteQueue.js';
 import { createMetricsServer } from './utils/metrics.js';
 import { markSessionDisconnected, startPollReaper } from './utils/pollReaper.js';
 
@@ -84,8 +85,8 @@ for (const signal of ['SIGTERM', 'SIGINT'] as const) {
         clearInterval(pollReaper);
 
         try {
-            await drainAll();
-            console.log('[shutdown] answers flushed');
+            await Promise.all([drainAll(), drainAllPollVotes()]);
+            console.log('[shutdown] buffered answers and poll votes flushed');
         } catch (err) {
             console.error('[shutdown] flush failed', err);
         }
