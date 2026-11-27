@@ -18,13 +18,13 @@
     "@repo/db": "workspace:*",
     "@types/dotenv": "^8.2.3",
     "@types/redis": "^4.0.11",
-    "@types/ws": "^8.18.1",
+    "@types/ws": "^8.18.2",
     "dotenv": "^17.3.1",
     "ioredis": "^5.10.1",
     "jsonwebtoken": "^9.0.3",
     "redis": "^5.12.1",
     "typescript": "^6.0.2",
-    "ws": "^8.20.0"
+    "ws": "^8.23.0"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",
