@@ -20,7 +20,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "prisma": "^7.5.0"
+    "prisma": "^7.10.1"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.5.0",
