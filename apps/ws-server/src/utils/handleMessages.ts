@@ -635,9 +635,9 @@ export const handleMessage = async (client: Client, data: any) => {
             // cleared.
             const leaderboard = await getCachedLeaderboard(sessionId);
 
-            await endQuizSession(sessionId);
             await clearSessionCache(sessionId);
-            clearSessionPolls(sessionId);
+            await clearSessionPolls(sessionId);
+            await endQuizSession(sessionId);
 
             broadcastToSession(sessionId, 'quiz:leaderboard', { leaderboard });
             broadcastToSession(sessionId, 'quiz:ended');
@@ -686,21 +686,28 @@ export const handleMessage = async (client: Client, data: any) => {
                 break;
             }
 
-            const poll = createPoll(
-                sessionId,
-                question,
-                options,
-                questionIndex,
-                duration,
-                () => {
-                    const expired = getActivePoll(sessionId);
-                    if (expired) {
-                        broadcastToSession(sessionId, 'poll:ended', {
-                            poll: sanitizePoll(expired),
-                        });
+            let poll;
+            try {
+                poll = await createPoll(
+                    sessionId,
+                    question,
+                    options,
+                    questionIndex,
+                    duration,
+                    () => {
+                        const expired = getActivePoll(sessionId);
+                        if (expired) {
+                            broadcastToSession(sessionId, 'poll:ended', {
+                                poll: sanitizePoll(expired),
+                            });
+                        }
                     }
-                }
-            );
+                );
+            } catch (err) {
+                console.error(`[pollManager] Failed to create poll for session ${sessionId}:`, err);
+                sendError(client, 'POLL_PERSISTENCE_FAILED', 'Could not save poll.');
+                break;
+            }
             if (!poll) {
                 sendError(client, 'POLL_ALREADY_ACTIVE', 'End the current poll before starting another.');
                 break;
@@ -746,7 +753,14 @@ export const handleMessage = async (client: Client, data: any) => {
             const { pollId } = payload;
             if (!pollId) break;
 
-            const poll = endPoll(sessionId, pollId);
+            let poll;
+            try {
+                poll = await endPoll(sessionId, pollId);
+            } catch (err) {
+                console.error(`[pollManager] Failed to end poll ${pollId}:`, err);
+                sendError(client, 'POLL_PERSISTENCE_FAILED', 'Could not save poll results.');
+                break;
+            }
             if (!poll) break;
 
             broadcastToSession(sessionId, 'poll:ended', {

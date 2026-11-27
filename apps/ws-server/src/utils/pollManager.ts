@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { prisma } from "@repo/db";
+import { drainPollVotes, enqueuePollVote } from "./pollVoteQueue.js";
 
 /**
  * Bounds for a poll created over the socket. The host UI already caps these
@@ -39,6 +40,8 @@ export interface ActivePoll {
 
 // Active poll per session: at most one active poll per session at any time.
 const activePolls = new Map<string, ActivePoll>();
+const creatingPolls = new Set<string>();
+const endingPolls = new Set<string>();
 
 // In-memory cache of recorded polls per session
 const recordedPollsCache = new Map<string, ActivePoll[]>();
@@ -74,15 +77,16 @@ export function sanitizePoll(poll: ActivePoll, participantId?: string) {
     };
 }
 
-export function createPoll(
+export async function createPoll(
     sessionId: string,
     question: string,
     options: string[],
     questionIndex?: number,
     duration?: number,
     onExpire?: () => void,
-): ActivePoll | null {
-    if (getActivePoll(sessionId)?.status === 'ACTIVE') return null;
+): Promise<ActivePoll | null> {
+    if (creatingPolls.has(sessionId) || getActivePoll(sessionId)?.status === 'ACTIVE') return null;
+    creatingPolls.add(sessionId);
 
     const pollId = randomUUID();
     const cleanOptions: PollOptionState[] = options
@@ -111,18 +115,46 @@ export function createPoll(
         voters: new Map<string, string>(),
     };
 
-    activePolls.set(sessionId, poll);
+    try {
+        await prisma.poll.create({
+            data: {
+                id: poll.id,
+                sessionId: poll.sessionId,
+                question: poll.question,
+                questionIndex: poll.questionIndex ?? null,
+                status: poll.status,
+                isRecorded: poll.isRecorded,
+                totalVotes: poll.totalVotes,
+                createdAt: new Date(poll.createdAt),
+                options: {
+                    create: poll.options.map((opt) => ({
+                        id: opt.id,
+                        text: opt.text,
+                        order: opt.order,
+                        voteCount: opt.voteCount,
+                    })),
+                },
+            },
+        });
 
-    if (duration && duration > 0) {
-        const timer = setTimeout(() => {
-            pollTimers.delete(sessionId);
-            endPoll(sessionId, poll.id);
-            if (onExpire) onExpire();
-        }, duration * 1000);
-        pollTimers.set(sessionId, timer);
+        activePolls.set(sessionId, poll);
+        if (duration && duration > 0) {
+            const timer = setTimeout(() => {
+                pollTimers.delete(sessionId);
+                void endPoll(sessionId, poll.id)
+                    .then((ended) => {
+                        if (ended && onExpire) onExpire();
+                    })
+                    .catch((err) => {
+                        console.error(`[pollManager] Failed to end expired poll ${poll.id}:`, err);
+                    });
+            }, duration * 1000);
+            pollTimers.set(sessionId, timer);
+        }
+        return poll;
+    } finally {
+        creatingPolls.delete(sessionId);
     }
-
-    return poll;
 }
 
 export function votePoll(
@@ -135,7 +167,7 @@ export function votePoll(
     if (!poll || poll.id !== pollId) {
         return { success: false, error: 'POLL_NOT_FOUND' };
     }
-    if (poll.status !== 'ACTIVE') {
+    if (poll.status !== 'ACTIVE' || endingPolls.has(sessionId)) {
         return { success: false, error: 'POLL_INACTIVE' };
     }
     if (poll.voters.has(participantId)) {
@@ -144,6 +176,10 @@ export function votePoll(
     const option = poll.options.find(o => o.id === optionId);
     if (!option) {
         return { success: false, error: 'INVALID_OPTION' };
+    }
+
+    if (!enqueuePollVote(sessionId, { pollId, optionId, participantId })) {
+        return { success: false, error: 'ALREADY_VOTED' };
     }
 
     poll.voters.set(participantId, optionId);
@@ -160,19 +196,30 @@ export function votePoll(
     return { success: true, poll };
 }
 
-export function endPoll(sessionId: string, pollId: string): ActivePoll | null {
+export async function endPoll(sessionId: string, pollId: string): Promise<ActivePoll | null> {
     const poll = activePolls.get(sessionId);
-    if (!poll || poll.id !== pollId) return null;
+    if (!poll || poll.id !== pollId || endingPolls.has(sessionId)) return null;
+    endingPolls.add(sessionId);
 
-    const timer = pollTimers.get(sessionId);
-    if (timer) {
-        clearTimeout(timer);
-        pollTimers.delete(sessionId);
+    try {
+        await drainPollVotes(sessionId);
+        const endedAt = Date.now();
+        await prisma.poll.update({
+            where: { id: poll.id },
+            data: { status: 'ENDED', endedAt: new Date(endedAt) },
+        });
+
+        const timer = pollTimers.get(sessionId);
+        if (timer) {
+            clearTimeout(timer);
+            pollTimers.delete(sessionId);
+        }
+        poll.status = 'ENDED';
+        poll.endedAt = endedAt;
+        return poll;
+    } finally {
+        endingPolls.delete(sessionId);
     }
-
-    poll.status = 'ENDED';
-    poll.endedAt = Date.now();
-    return poll;
 }
 
 export async function recordPoll(sessionId: string, pollId: string): Promise<{ success: boolean; poll?: ActivePoll; error?: string }> {
@@ -181,63 +228,30 @@ export async function recordPoll(sessionId: string, pollId: string): Promise<{ s
         return { success: false, error: 'POLL_NOT_FOUND' };
     }
 
-    poll.isRecorded = true;
-    poll.recordedAt = Date.now();
-
-    // Cache in session's recorded polls list
-    const sessionRecorded = recordedPollsCache.get(sessionId) ?? [];
-    if (!sessionRecorded.some(p => p.id === poll.id)) {
-        sessionRecorded.push({
-            ...poll,
-            voters: new Map(poll.voters),
-            options: poll.options.map(o => ({ ...o })),
-        });
-        recordedPollsCache.set(sessionId, sessionRecorded);
-    }
-
-    // Persist to Prisma DB
     try {
-        await prisma.poll.upsert({
+        await drainPollVotes(sessionId);
+        const recordedAt = Date.now();
+        await prisma.poll.update({
             where: { id: poll.id },
-            update: {
-                isRecorded: true,
-                recordedAt: new Date(poll.recordedAt),
-                status: poll.status,
-                totalVotes: poll.totalVotes,
-                endedAt: poll.endedAt ? new Date(poll.endedAt) : null,
-                options: {
-                    update: poll.options.map(opt => ({
-                        where: { id: opt.id },
-                        data: { voteCount: opt.voteCount },
-                    })),
-                },
-            },
-            create: {
-                id: poll.id,
-                sessionId: poll.sessionId,
-                question: poll.question,
-                questionIndex: poll.questionIndex ?? null,
-                status: poll.status,
-                isRecorded: true,
-                totalVotes: poll.totalVotes,
-                createdAt: new Date(poll.createdAt),
-                endedAt: poll.endedAt ? new Date(poll.endedAt) : null,
-                recordedAt: new Date(poll.recordedAt),
-                options: {
-                    create: poll.options.map(opt => ({
-                        id: opt.id,
-                        text: opt.text,
-                        order: opt.order,
-                        voteCount: opt.voteCount,
-                    })),
-                },
-            },
+            data: { isRecorded: true, recordedAt: new Date(recordedAt) },
         });
+        poll.isRecorded = true;
+        poll.recordedAt = recordedAt;
+
+        const sessionRecorded = recordedPollsCache.get(sessionId) ?? [];
+        if (!sessionRecorded.some((p) => p.id === poll.id)) {
+            sessionRecorded.push({
+                ...poll,
+                voters: new Map(poll.voters),
+                options: poll.options.map((o) => ({ ...o })),
+            });
+            recordedPollsCache.set(sessionId, sessionRecorded);
+        }
+        return { success: true, poll };
     } catch (err) {
         console.error(`[pollManager] Failed to persist poll ${poll.id} to DB:`, err);
+        return { success: false, error: 'POLL_PERSISTENCE_FAILED' };
     }
-
-    return { success: true, poll };
 }
 
 export function dismissPoll(sessionId: string, pollId: string): boolean {
@@ -268,7 +282,8 @@ export function listTrackedPollSessionIds(): string[] {
     );
 }
 
-export function clearSessionPolls(sessionId: string) {
+export async function clearSessionPolls(sessionId: string): Promise<void> {
+    await drainPollVotes(sessionId);
     const timer = pollTimers.get(sessionId);
     if (timer) {
         clearTimeout(timer);
@@ -276,4 +291,6 @@ export function clearSessionPolls(sessionId: string) {
     }
     activePolls.delete(sessionId);
     recordedPollsCache.delete(sessionId);
+    creatingPolls.delete(sessionId);
+    endingPolls.delete(sessionId);
 }
