@@ -8,6 +8,66 @@ and caches quiz state.
 
 ---
 
+## 0. Claim the issue first
+
+**Before you write any code, get the issue assigned to you.** A pull request
+for an issue nobody was assigned may be closed without review, however good
+the code is.
+
+This is not bureaucracy. It has already cost people real work here: two
+contributors independently fixed the same issue, and one of them spent an
+evening on a change that had merged the day before. That was our fault for
+leaving the issue unassigned, and this rule is the fix.
+
+### How to claim
+
+1. Find an issue nobody is assigned to. [Good first issues](https://github.com/TheCodeHeist-Coder/Rexial/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+   are the place to start.
+2. Comment on it saying you would like to take it. One line is enough.
+3. **Wait for a maintainer to reply.** You are claimed once a maintainer
+   assigns you *or* replies saying it is yours — GitHub will not let us assign
+   people who are not yet collaborators, so the reply is what counts.
+4. Then start work.
+
+We usually answer within a day or two. If three days pass with no reply, say
+so on the issue and tag `@TheCodeHeist-Coder` — a missed notification is far
+more likely than a no.
+
+### The 14-day rule
+
+An issue assigned to you is held for **14 days**.
+
+If there is no visible progress and no word from you in that time, we will
+unassign you and reopen it to others. Visible progress means a draft PR, a
+commit pushed to a branch, or simply a comment saying where you have got to.
+
+**A comment is enough to keep it.** If you are busy, stuck, or something came
+up, say so and we will extend it — nobody has ever been turned down for
+asking. We only reclaim issues that have gone quiet, and we always comment
+before doing so.
+
+If you decide not to continue, please say so. It takes you ten seconds and
+saves the next person two weeks.
+
+### When you do not need to claim
+
+- **Typos, broken links, formatting** — just open the PR.
+- **A bug you found yourself that has no issue** — open an issue describing
+  it, say you are working on it, and go ahead. You do not need to wait.
+- **Security vulnerabilities** — do not open a public issue at all. See
+  [SECURITY.md](SECURITY.md).
+
+### Before you start, check
+
+- Is anyone assigned? The sidebar shows it.
+- Has someone already asked for it in the comments?
+- Is there an open PR linked to it? Check the issue's timeline.
+
+If any of those is true, pick another issue — or ask whether help is wanted.
+Some larger issues split well between two people.
+
+---
+
 ## 1. Fork the Repository
 
 -Go to the project repository on GitHub
@@ -217,6 +277,11 @@ git push origin feature/<your-feature-name>
    *Clear title
    *Description of changes
    *Screenshots (if UI changes)
+   *`Closes #<issue>` — the issue that was assigned to you in step 0
+
+> Opening a PR for an issue that was never assigned to you? See
+>[step 0](#0-claim-the-issue-first). Small doc and typo fixes are exempt;
+>anything larger may be closed without review, so it is worth a quick check.
 
 
 

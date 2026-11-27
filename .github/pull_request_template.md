@@ -6,7 +6,12 @@
 ## Related issue
 
 <!-- "Closes #12" links the issue and closes it automatically when this merges.
-     If there is no issue, say briefly why the change is needed. -->
+     If there is no issue, say briefly why the change is needed.
+
+     Was the issue assigned to you before you started? If not, please read
+     "Claim the issue first" in CONTRIBUTING.md. Typos, broken links and
+     small doc fixes do not need an issue — everything else does, so two
+     people do not end up writing the same change. -->
 
 Closes #
 
