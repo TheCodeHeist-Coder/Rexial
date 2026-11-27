@@ -56,6 +56,24 @@ describe("CreatePollModal", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(/Please provide a question/i);
   });
 
+  it("blocks launch while a poll is active and re-enables it when that poll ends", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    const props = { isOpen: true, onClose: vi.fn(), onSubmit };
+    const { rerender } = render(<CreatePollModal {...props} hasActivePoll />);
+    await user.click(screen.getByRole("button", { name: /Yes \/ No/i }));
+    const launch = screen.getByRole("button", { name: /Launch Poll/i });
+    expect(launch).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent(/End the current poll/i);
+    await user.click(launch);
+    expect(onSubmit).not.toHaveBeenCalled();
+
+    rerender(<CreatePollModal {...props} hasActivePoll={false} />);
+    expect(launch).toBeEnabled();
+    await user.click(launch);
+    expect(onSubmit).toHaveBeenCalledOnce();
+  });
+
   it("submits valid poll data with duration and cleaned options", async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn();
@@ -192,6 +210,51 @@ describe("ActivePollOverlay", () => {
 
     expect(screen.getByText(/Recorded/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Record Result/i })).not.toBeInTheDocument();
+  });
+
+  it("shows remaining countdown from createdAt and duration when joining late", () => {
+    const now = Date.now();
+    const timedPoll: Poll = {
+      ...samplePoll,
+      duration: 30,
+      createdAt: now - 12_000,
+    };
+
+    render(
+      <ActivePollOverlay
+        poll={timedPoll}
+        isOrganizer={false}
+        onVote={vi.fn()}
+        onEndPoll={vi.fn()}
+        onRecordPoll={vi.fn()}
+        onDismissPoll={vi.fn()}
+        isConnected={true}
+      />
+    );
+
+    expect(screen.getByText("18s")).toBeInTheDocument();
+  });
+
+  it("clamps countdown to poll.duration if createdAt is slightly ahead of client clock", () => {
+    const futurePoll: Poll = {
+      ...samplePoll,
+      duration: 30,
+      createdAt: Date.now() + 5_000,
+    };
+
+    render(
+      <ActivePollOverlay
+        poll={futurePoll}
+        isOrganizer={false}
+        onVote={vi.fn()}
+        onEndPoll={vi.fn()}
+        onRecordPoll={vi.fn()}
+        onDismissPoll={vi.fn()}
+        isConnected={true}
+      />
+    );
+
+    expect(screen.getByText("30s")).toBeInTheDocument();
   });
 });
 

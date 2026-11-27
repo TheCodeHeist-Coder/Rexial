@@ -139,6 +139,39 @@ describe("Live polling feature", () => {
         expect(startEvents[0]?.payload.poll.options[0].text).toBe("Yes, very");
     });
 
+    it("preserves the first poll's votes and expiry when a second launch is rejected", async () => {
+        vi.useFakeTimers();
+        try {
+            const host = await joinedHost();
+            const participant = await joinedParticipant();
+            const launch = {
+                sessionId, token: hostToken(), question: "First poll?", options: ["Yes", "No"], duration: 5,
+            };
+            await handleMessage(host, { type: "poll:create", payload: launch });
+            const first = broadcasts().find(event => event.type === "poll:started")?.payload.poll;
+            await handleMessage(participant, {
+                type: "poll:vote",
+                payload: { sessionId, pollId: first.id, optionId: first.options[0].id },
+            });
+
+            await handleMessage(host, {
+                type: "poll:create", payload: { ...launch, question: "Second poll?" },
+            });
+            expect(sent(host)).toContainEqual(expect.objectContaining({
+                type: "error",
+                payload: expect.objectContaining({ code: "POLL_ALREADY_ACTIVE" }),
+            }));
+            expect(broadcasts().filter(event => event.type === "poll:started")).toHaveLength(1);
+
+            await vi.advanceTimersByTimeAsync(5000);
+            expect(broadcasts().find(event => event.type === "poll:ended")?.payload.poll)
+                .toMatchObject({ id: first.id, status: "ENDED", totalVotes: 1 });
+        } finally {
+            clearSessionPolls(sessionId);
+            vi.useRealTimers();
+        }
+    });
+
     it("rejects poll:create from a regular participant", async () => {
         const p = await joinedParticipant();
 
@@ -371,6 +404,15 @@ describe("Live polling feature", () => {
 
         const errors = sent(p1).filter(m => m.type === "error");
         expect(errors[0]?.payload.code).toBe("POLL_INACTIVE");
+
+        await handleMessage(host, {
+            type: "poll:create",
+            payload: { sessionId, token: hostToken(), question: "Next poll?", options: ["A", "B"] },
+        });
+        const starts = broadcasts().filter(event => event.type === "poll:started");
+        expect(starts).toHaveLength(2);
+        expect(starts[1]?.payload.poll).toMatchObject({ question: "Next poll?", status: "ACTIVE" });
+        expect(starts[1]?.payload.poll.id).not.toBe(pollStarted.id);
     });
 
     it("allows organizer to record the poll result at the moment", async () => {
@@ -455,5 +497,121 @@ describe("Live polling feature", () => {
 
         const dismissEvents = broadcasts().filter(b => b.type === "poll:dismissed");
         expect(dismissEvents.length).toBe(1);
+    });
+
+    it("sends poll:started to a late-joining participant while a poll is active", async () => {
+        const host = await joinedHost();
+
+        await handleMessage(host, {
+            type: "poll:create",
+            payload: {
+                sessionId,
+                token: hostToken(),
+                question: "Joined late?",
+                options: ["Yes", "No"],
+                duration: 60,
+            },
+        });
+
+        const late = makeClient({ participantId: "p-late" });
+        mocks.prisma.participant.findUnique.mockResolvedValue({ id: "p-late", username: "Late" });
+        await handleMessage(late, {
+            type: "join",
+            payload: { sessionId, role: "PARTICIPANT", participantId: "p-late" },
+        });
+
+        const replay = sent(late).find(m => m.type === "poll:started");
+        expect(replay).toBeDefined();
+        expect(replay?.payload.poll).toMatchObject({
+            question: "Joined late?",
+            status: "ACTIVE",
+            duration: 60,
+            votedOptionId: null,
+        });
+    });
+
+    it("restores votedOptionId when a participant reconnects after voting", async () => {
+        const host = await joinedHost();
+        const p1 = await joinedParticipant("p-1");
+
+        await handleMessage(host, {
+            type: "poll:create",
+            payload: {
+                sessionId,
+                token: hostToken(),
+                question: "Reconnect poll?",
+                options: ["Alpha", "Beta"],
+            },
+        });
+
+        const created = broadcasts().find(b => b.type === "poll:started")?.payload.poll;
+        const optAlpha = created.options[0].id;
+
+        await handleMessage(p1, {
+            type: "poll:vote",
+            payload: {
+                sessionId,
+                pollId: created.id,
+                optionId: optAlpha,
+                participantId: "p-1",
+            },
+        });
+
+        const reconnected = makeClient({ participantId: "p-1" });
+        mocks.prisma.participant.findUnique.mockResolvedValue({ id: "p-1", username: "Player" });
+        await handleMessage(reconnected, {
+            type: "join",
+            payload: { sessionId, role: "PARTICIPANT", participantId: "p-1" },
+        });
+
+        const replay = sent(reconnected).find(m => m.type === "poll:started");
+        expect(replay?.payload.poll.votedOptionId).toBe(optAlpha);
+        expect(replay?.payload.poll.totalVotes).toBe(1);
+    });
+
+    it("replays poll:started to an organizer who reloads and ignores ended polls", async () => {
+        const host = await joinedHost();
+
+        await handleMessage(host, {
+            type: "poll:create",
+            payload: {
+                sessionId,
+                token: hostToken(),
+                question: "Host reload poll?",
+                options: ["Keep", "Skip"],
+                duration: 45,
+            },
+        });
+
+        const created = broadcasts().find(b => b.type === "poll:started")?.payload.poll;
+
+        const reloadedHost = makeClient();
+        mocks.prisma.quizOrganizer.findFirst.mockResolvedValue({ id: "org-1" });
+        await handleMessage(reloadedHost, {
+            type: "join",
+            payload: { sessionId, role: "ORGANIZER", token: hostToken() },
+        });
+
+        const hostReplay = sent(reloadedHost).find(m => m.type === "poll:started");
+        expect(hostReplay?.payload.poll).toMatchObject({
+            id: created.id,
+            status: "ACTIVE",
+            duration: 45,
+            votedOptionId: null,
+        });
+
+        await handleMessage(host, {
+            type: "poll:end",
+            payload: { sessionId, token: hostToken(), pollId: created.id },
+        });
+
+        const afterEnd = makeClient({ participantId: "p-after" });
+        mocks.prisma.participant.findUnique.mockResolvedValue({ id: "p-after", username: "After" });
+        await handleMessage(afterEnd, {
+            type: "join",
+            payload: { sessionId, role: "PARTICIPANT", participantId: "p-after" },
+        });
+
+        expect(sent(afterEnd).find(m => m.type === "poll:started")).toBeUndefined();
     });
 });

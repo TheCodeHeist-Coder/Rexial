@@ -199,6 +199,19 @@ async function sendQuizStateSnapshot(client: Client, sessionId: string) {
 }
 
 
+/** Replay an in-flight active poll to a joining or reconnecting socket. */
+function sendActivePollOnJoin(client: Client, sessionId: string) {
+    if (client.ws.readyState !== WebSocket.OPEN) return;
+    const active = getActivePoll(sessionId);
+    if (active && active.status === 'ACTIVE') {
+        client.ws.send(JSON.stringify({
+            type: 'poll:started',
+            payload: { poll: sanitizePoll(active, client.participantId) },
+        }));
+    }
+}
+
+
 export const handleMessage = async (client: Client, data: any) => {
     const { type, payload } = data;
 
@@ -288,6 +301,7 @@ export const handleMessage = async (client: Client, data: any) => {
                 if (session?.status === 'IN_PROGRESS') {
                     await sendQuizStateSnapshot(client, sessionId);
                 }
+                sendActivePollOnJoin(client, sessionId);
             } else if (role === 'PARTICIPANT' && participantId) {
                 const participant = await prisma.participant.findUnique({
                     where: { id: participantId }
@@ -326,6 +340,7 @@ export const handleMessage = async (client: Client, data: any) => {
                 if (session?.status === 'IN_PROGRESS') {
                     await sendQuizStateSnapshot(client, sessionId);
                 }
+                sendActivePollOnJoin(client, sessionId);
             }
             break;
         }
@@ -686,6 +701,10 @@ export const handleMessage = async (client: Client, data: any) => {
                     }
                 }
             );
+            if (!poll) {
+                sendError(client, 'POLL_ALREADY_ACTIVE', 'End the current poll before starting another.');
+                break;
+            }
 
             broadcastToSession(sessionId, 'poll:started', {
                 poll: sanitizePoll(poll),
