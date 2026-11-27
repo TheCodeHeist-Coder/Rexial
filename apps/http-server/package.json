@@ -37,11 +37,11 @@
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
-    "@types/node": "^25.5.0",
+    "@types/node": "^26.6.6",
     "ts-node-dev": "^2.0.0",
-    "tsup": "^8.5.1",
+    "tsup": "^9.0.0",
     "typescript": "^6.0.2",
-    "vitest": "^5.0.2",
-    "wait-on": "^9.0.4"
+    "vitest": "^5.1.1",
+    "wait-on": "^9.5.1"
   }
 }
