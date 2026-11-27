@@ -65,7 +65,7 @@ export async function reapAbandonedPolls(now = Date.now()) {
         const session = byId.get(sessionId);
 
         if (!session || session.status === "COMPLETED" || session.status === "CANCELLED") {
-            clearSessionPolls(sessionId);
+            await clearSessionPolls(sessionId);
             absentSince.delete(sessionId);
             continue;
         }
@@ -85,7 +85,7 @@ export async function reapAbandonedPolls(now = Date.now()) {
             clientsInSession(sessionId).size === 0 ? EMPTY_SESSION_GRACE_MS : ORPHANED_HOST_GRACE_MS;
 
         if (now - since >= graceMs) {
-            clearSessionPolls(sessionId);
+            await clearSessionPolls(sessionId);
             absentSince.delete(sessionId);
         }
     }
