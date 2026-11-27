@@ -210,6 +210,54 @@ describe('Reviewing', () => {
         expect(onSave).not.toHaveBeenCalled();
     });
 
+    it('saves a different time limit per question', async () => {
+        const { user, onSave, onClose } = setup();
+        await choosePdf(user);
+        await generate(user, [question('Q1'), question('Q2')]);
+
+        const seconds = screen.getAllByLabelText('Seconds for this question');
+        await user.clear(seconds[1]);
+        await user.type(seconds[1], '45');
+        await user.click(screen.getByRole('button', { name: 'Add 2 to Quiz' }));
+
+        await waitFor(() => expect(onClose).toHaveBeenCalled());
+        expect(onSave).toHaveBeenCalledTimes(2);
+        expect(onSave.mock.calls[0][1]).toBe(15);
+        expect(onSave.mock.calls[1][1]).toBe(45);
+    });
+
+    it('applies the batch time control to every draft', async () => {
+        const { user, onSave } = setup();
+        await choosePdf(user);
+        await generate(user, [question('Q1'), question('Q2')]);
+
+        await user.click(screen.getByRole('button', { name: '30s' }));
+        expect(
+            screen
+                .getAllByLabelText('Seconds for this question')
+                .map((el) => (el as HTMLInputElement).value)
+        ).toEqual(['30', '30']);
+
+        await user.click(screen.getByRole('button', { name: 'Add 2 to Quiz' }));
+        await waitFor(() => expect(onSave).toHaveBeenCalledTimes(2));
+        expect(onSave.mock.calls.map(([, seconds]) => seconds)).toEqual([30, 30]);
+    });
+
+    it('rejects an invalid per-question time limit and names the question', async () => {
+        const { user, onSave } = setup();
+        await choosePdf(user);
+        await generate(user, [question('Q1'), question('Q2')]);
+
+        const seconds = screen.getAllByLabelText('Seconds for this question');
+        await user.clear(seconds[1]);
+        await user.type(seconds[1], '2');
+        await user.click(screen.getByRole('button', { name: 'Add 2 to Quiz' }));
+
+        expect(screen.getByRole('alert')).toHaveTextContent('Question 2');
+        expect(screen.getByRole('alert')).toHaveTextContent('from 5 to 300 seconds');
+        expect(onSave).not.toHaveBeenCalled();
+    });
+
     it('saves edits, the chosen difficulty and the time preset, then closes', async () => {
         const { user, onSave, onSaved, onClose } = setup();
         await choosePdf(user);
