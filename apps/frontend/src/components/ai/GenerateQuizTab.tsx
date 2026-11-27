@@ -19,7 +19,7 @@ import { useAiRequest } from './useAiRequest';
 interface DraftQuestion extends GeneratedQuestion {
     id: number;
     selected: boolean;
-    timeLimit: number;
+    timeLimit: string;
 }
 
 interface Props {
@@ -40,7 +40,7 @@ const MAX_TIME = 300;
 
 let nextDraftId = 1;
 
-const toDraft = (q: GeneratedQuestion, timeLimit: number): DraftQuestion => ({
+const toDraft = (q: GeneratedQuestion, timeLimit: string): DraftQuestion => ({
     ...q,
     id: nextDraftId++,
     selected: true,
@@ -83,7 +83,7 @@ function GenerateQuizTab({ file, existingQuestions, onSave, onSaved, onClose }: 
     // An out-of-range value is still applied so saving reports it per draft.
     const applyBatchTimeLimit = (value: string) => {
         setTimeLimit(value);
-        setDrafts((prev) => prev.map((d) => ({ ...d, timeLimit: Number(value) })));
+        setDrafts((prev) => prev.map((d) => ({ ...d, timeLimit: value })));
     };
 
     const setCorrect = (id: number, optIdx: number) => {
@@ -132,7 +132,7 @@ function GenerateQuizTab({ file, existingQuestions, onSave, onSaved, onClose }: 
             );
 
             // appended, so generating again never throws away unsaved work
-            setDrafts((prev) => [...prev, ...questions.map((q) => toDraft(q, Number(timeLimit)))]);
+            setDrafts((prev) => [...prev, ...questions.map((q) => toDraft(q, timeLimit))]);
         } catch (err) {
             if (!isCancelled(err)) {
                 setError(genaiErrorMessage(err, 'Failed to generate questions.'));
@@ -187,7 +187,7 @@ function GenerateQuizTab({ file, existingQuestions, onSave, onSaved, onClose }: 
 
         const invalidTime = chosen.find(
             (q) =>
-                !Number.isInteger(q.timeLimit) || q.timeLimit < MIN_TIME || q.timeLimit > MAX_TIME
+                !Number.isInteger(Number(q.timeLimit)) || Number(q.timeLimit) < MIN_TIME || Number(q.timeLimit) > MAX_TIME
         );
 
         if (invalidTime) {
@@ -207,7 +207,7 @@ function GenerateQuizTab({ file, existingQuestions, onSave, onSaved, onClose }: 
             // Remove only confirmed saves, so retrying won't submit those drafts again.
             for (const q of chosen) {
                 try {
-                    await onSave(q, q.timeLimit);
+                    await onSave(q, Number(q.timeLimit));
                 } catch (err) {
                     const response = isAxiosError<{ error?: unknown }>(err) ? err.response : undefined;
                     const status = response?.status;
@@ -468,7 +468,7 @@ function GenerateQuizTab({ file, existingQuestions, onSave, onSaved, onClose }: 
                                             max={MAX_TIME}
                                             value={q.timeLimit}
                                             onChange={(e) =>
-                                                updateDraft(q.id, { timeLimit: Number(e.target.value) })
+                                                updateDraft(q.id, { timeLimit: e.target.value })
                                             }
                                             disabled={busy}
                                             className="w-16 shrink-0 text-center text-xs px-2 py-1 rounded border border-green-800/60 bg-zinc-900 text-green-200 font-bold outline-none"
