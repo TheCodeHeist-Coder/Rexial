@@ -226,7 +226,8 @@ describe('Reviewing', () => {
         expect(onSave.mock.calls[1][1]).toBe(45);
     });
 
-    it('applies the batch time control to every draft', async () => {
+      it('keeps the per-question time limit blank while clearing it to retype', async () => {
+          const { user, onSave } = setup();     await choosePdf(user);     await generate(user, [question('Q1')]);      const limit = screen.getByLabelText('Seconds for this question');     expect((limit as HTMLInputElement).value).toBe('15');     await user.clear(limit);     expect((limit as HTMLInputElement).value).toBe('');     await user.type(limit, '45');     expect((limit as HTMLInputElement).value).toBe('45');      await user.click(screen.getByRole('button', { name: 'Add 1 to Quiz' }));     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ text: 'Q1' }), 45);   });    it('applies the batch time control to every draft', async () => {
         const { user, onSave } = setup();
         await choosePdf(user);
         await generate(user, [question('Q1'), question('Q2')]);
