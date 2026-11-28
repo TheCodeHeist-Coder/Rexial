@@ -37,6 +37,10 @@ function QuizBuilder() {
   const [quiz, setQuiz] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false)
   const [hosting, setHosting] = useState(false);
+  // Set when Host Live finds a session already being played; the host picks
+  // between going back to it and replacing it.
+  const [runningSession, setRunningSession] =
+    useState<{ sessionId: string; wantsVideo: boolean } | null>(null);
 
 
   const [showAddQ, setShowAddQ] = useState(false);
@@ -105,12 +109,20 @@ function QuizBuilder() {
   }
 
 
-  const handleHostLive = async (liveVideo = false) => {
+  const handleHostLive = async (liveVideo = false, restart = false) => {
     if (hosting) return alert("Quiz is already Hosted!")
     setHosting(true);
     try {
-      const { data } = await api.post(`/quizzes/${id}/start-session`, { liveVideo });
+      const { data } = await api.post(
+        `/quizzes/${id}/start-session`,
+        restart ? { liveVideo, restart } : { liveVideo }
+      );
       console.log("Api data is", data);
+      if (data.inProgress) {
+        setRunningSession({ sessionId: data.sessonId, wantsVideo: liveVideo });
+        setHosting(false);
+        return;
+      }
       navigate(`/quiz/manage/${data.sessonId}`);
       
 
@@ -332,6 +344,50 @@ const handleSaveQuestion = async () => {
       </header>
 
 
+
+      {runningSession && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="running-dialog-title"
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4"
+        >
+          <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6 sm:p-8 max-w-md w-full shadow-2xl">
+            <h3 id="running-dialog-title" className="text-xl font-bold font-secondary text-gray-200 mb-2">
+              A session is already running
+            </h3>
+            <p className="text-zinc-400 text-sm mb-6 font-main">
+              Return to it to carry on with the same players. Starting a new session cancels it, and its players have to join again with the code.
+            </p>
+            <div className="flex flex-wrap justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setRunningSession(null)}
+                disabled={hosting}
+                className="px-4 py-2 text-sm text-zinc-400 hover:text-zinc-200 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleHostLive(runningSession.wantsVideo, true)}
+                disabled={hosting}
+                className="px-4 py-2 text-sm text-red-300 hover:text-red-200 bg-rose-600/20 hover:bg-rose-600/30 border border-rose-600/40 rounded-xl font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {hosting ? 'Starting...' : 'Start new session'}
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate(`/quiz/manage/${runningSession.sessionId}`)}
+                disabled={hosting}
+                className="px-4 py-2 text-sm text-green-400 bg-green-700/30 hover:bg-green-700/40 border border-green-600/40 rounded-xl font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Return to session
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="max-w-7xl mx-auto px-6 pt-12 pb-32 grid md:grid-cols-[1fr_300px] gap-12">
         <div className="space-y-6">
