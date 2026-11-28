@@ -405,13 +405,21 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
             setPollLaunchError(null);
             break;
           case 'poll:updated':
-            setActivePoll((prev) => (prev ? { ...prev, ...payload.poll } : payload.poll));
+            setActivePoll((prev) =>
+              prev && prev.id === payload.poll.id
+              ? { ...prev, ...payload.poll, votedOptionId: payload.poll.votedOptionId ?? prev.votedOptionId }
+              : payload.poll
+          );
             break;
           case 'poll:voted':
             setActivePoll((prev) => (prev ? { ...prev, votedOptionId: payload.optionId } : prev));
             break;
           case 'poll:ended':
-            setActivePoll((prev) => (prev ? { ...prev, ...payload.poll, status: 'ENDED' } : payload.poll));
+            setActivePoll((prev) =>
+              prev && prev.id === payload.poll.id
+              ? { ...prev, ...payload.poll, status: 'ENDED', votedOptionId: payload.poll.votedOptionId ?? prev.votedOptionId }
+              : payload.poll
+          );
             setPollLaunchError(null);
             break;
           case 'poll:recorded':

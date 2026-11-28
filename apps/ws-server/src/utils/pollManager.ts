@@ -73,7 +73,7 @@ export function sanitizePoll(poll: ActivePoll, participantId?: string) {
             voteCount: opt.voteCount,
             percentage: opt.percentage,
         })),
-        votedOptionId: participantId ? (poll.voters.get(participantId) ?? null) : null,
+        ...(participantId ? { votedOptionId: poll.voters.get(participantId) ?? null } : {}),
     };
 }
 
