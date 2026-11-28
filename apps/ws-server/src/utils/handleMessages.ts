@@ -23,6 +23,8 @@ import {
     currentQuestionKey,
     closeQuestionWindow,
     finishQuestionEarly,
+    markQuestionAsked,
+    showStandings,
 } from "./timeManager.js";
 import { enqueueAnswer, countAnswered, drainSession } from "./answerQueue.js";
 import {
@@ -449,6 +451,8 @@ export const handleMessage = async (client: Client, data: any) => {
                 }))
             }
 
+            await markQuestionAsked(sessionId, questionIndex);
+
             broadcastToSession(sessionId, 'quiz:question', { question: sanitizedQuestion })
 
             // Open the progress bar at zero rather than letting it appear
@@ -473,6 +477,14 @@ export const handleMessage = async (client: Client, data: any) => {
             }
 
             await startQuestionTimer(sessionId, questionIndex)
+            break;
+        }
+
+        case 'quiz:show-leaderboard': {
+            const sessionId = authorizeOrganizerAction(client, payload);
+            if (!sessionId) break;
+
+            await showStandings(sessionId);
             break;
         }
 

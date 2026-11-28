@@ -24,11 +24,27 @@ export const timerDeadlineKey = (sessionId: string) =>
 export const currentQuestionKey = (sessionId: string) =>
     `quiz:current-q:${sessionId}`;
 
+// The newest question the host asked for. Unlike currentQuestionKey it is not
+// removed when that question closes, so delayed work can tell the quiz has
+// moved on. Kept in Redis because the timer may be on another instance.
+const latestQuestionKey = (sessionId: string) =>
+    `quiz:latest-q:${sessionId}`;
+
 // Set once when a question closes, by whichever path gets there first, so the
 // results cannot be revealed twice. Outlives the deadline key deliberately:
 // the deadline can expire on a loaded server, this must not.
 const closedKey = (sessionId: string, questionIndex: number) =>
     `quiz:closed:${sessionId}:${questionIndex}`;
+
+/** Record the question about to be shown, before anyone is sent it. */
+export async function markQuestionAsked(sessionId: string, questionIndex: number) {
+    await cache.set(latestQuestionKey(sessionId), String(questionIndex), 'EX', 3_600);
+}
+
+async function hasMovedOn(sessionId: string, questionIndex: number) {
+    const latest = await cache.get(latestQuestionKey(sessionId));
+    return latest !== null && latest !== String(questionIndex);
+}
 
 /**
  * Close the question in flight: stop the countdown, reveal the answers, then
@@ -52,6 +68,10 @@ async function finishQuestion(
     byCountdown = false,
     timerEndedAt?: number,
 ) {
+    // A timer left over from an earlier question. The deadline below belongs to
+    // the newer one by now, so it must not be touched.
+    if (await hasMovedOn(sessionId, questionIndex)) return;
+
     const lockKey = timerLockKey(sessionId, questionIndex);
 
     // Claim the close, so the countdown and an early finish racing on the
@@ -112,8 +132,32 @@ async function finishQuestion(
     }
 
     setTimeout(() => {
-        broadcastToSession(sessionId, 'quiz:leaderboard', { leaderboard });
+        // The host can start the next question inside these two seconds, and
+        // these standings would then cover it on every screen.
+        hasMovedOn(sessionId, questionIndex)
+            .then((movedOn) => {
+                if (!movedOn) {
+                    broadcastToSession(sessionId, 'quiz:leaderboard', { leaderboard });
+                }
+            })
+            .catch((err) =>
+                console.error('[timer] leaderboard failed', { sessionId, questionIndex }, err),
+            );
     }, 2_000);
+}
+
+/**
+ * Send the standings on the host's request, without waiting for the delayed
+ * send above. This is also the way forward for a host who reloaded after it.
+ */
+export async function showStandings(sessionId: string) {
+    // Nothing to show while a question is still open, and sending would pull
+    // everyone off it.
+    const deadline = await cache.get(timerDeadlineKey(sessionId));
+    if (deadline && Number(deadline) > Date.now()) return;
+
+    const leaderboard = await getCachedLeaderboard(sessionId);
+    broadcastToSession(sessionId, 'quiz:leaderboard', { leaderboard });
 }
 
 /**

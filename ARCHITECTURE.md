@@ -229,6 +229,7 @@ A raw `ws` server. Every message is `{ type, payload }`.
 | `join` | both | Binds the socket to a session and role. An organizer must send their login `token`; the server checks it |
 | `quiz:start` | organizer | Starts the quiz |
 | `quiz:next-question` | organizer | Broadcasts the next question, starts its timer |
+| `quiz:show-leaderboard` | organizer | Sends the standings now, once no question is open |
 | `quiz:submit-answer` | participant | Scores the answer, updates the leaderboard |
 | `quiz:end` | organizer | Ends the session |
 
@@ -260,9 +261,9 @@ Two security-relevant details:
    same `JWT_SECRET` as http-server and checks that the user is an accepted
    `QuizOrganizer` of the quiz behind the session. Otherwise it answers with an
    `error` message (`ORGANIZER_AUTH_FAILED`) and the socket stays out of the
-   session. `quiz:start`, `quiz:next-question`, `quiz:end` and
-   `participants:refresh` are only accepted from a verified organizer and only
-   for the session that socket joined.
+   session. `quiz:start`, `quiz:next-question`, `quiz:show-leaderboard`,
+   `quiz:end` and `participants:refresh` are only accepted from a verified
+   organizer and only for the session that socket joined.
 
 Scoring rewards speed:
 

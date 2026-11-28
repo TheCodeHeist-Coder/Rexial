@@ -653,6 +653,11 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
     if (sent) setQIndex(nextIdx);
   };
 
+  // Asks for the leaderboard only. Moving on is the button on that screen.
+  const handleShowStandings = () => {
+    sendMessage({ type: 'quiz:show-leaderboard', payload: { sessionId } });
+  };
+
 
   const handleAnswer = (answerId: string) => {
     if (selectedAnswer || gameState !== GameState.QUESTION) return;
@@ -1033,8 +1038,8 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
 
           {gameState === GameState.RESULTS && isOrganizer && (
             <div className="fixed bottom-0 left-0 w-full p-6 bg-background/80 backdrop-blur-md border-t border-white/10 flex flex-col items-end">
-              <button onClick={handleNext} disabled={!isConnected} className="btn-primary py-3 px-8 text-lg font-bold disabled:opacity-50">Show Standings →</button>
-              {notSentNotice('the next step was not sent.', 'wait for the connection to come back.')}
+              <button onClick={handleShowStandings} disabled={!isConnected} className="btn-primary py-3 px-8 text-lg font-bold disabled:opacity-50">Show Standings →</button>
+              {notSentNotice('the standings were not requested.', 'wait for the connection to come back.')}
             </div>
           )}
         </div>
