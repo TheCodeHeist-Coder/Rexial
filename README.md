@@ -170,6 +170,12 @@ something that matches how much time you have.
 - **Want something meatier?** → [help wanted](https://github.com/TheCodeHeist-Coder/Rexial/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)
   covers race conditions, RAG caching, and WebSocket scaling.
 
+**Comment on an issue and wait to be assigned before you start coding.** A PR for
+an unassigned issue may be closed without review, and an assigned issue goes back
+in the pool after 14 days of silence — a one-line comment is enough to keep it.
+Typos and small doc fixes are exempt. Full rules:
+[Claim the issue first](CONTRIBUTING.md#0-claim-the-issue-first).
+
 [CONTRIBUTING.md](CONTRIBUTING.md) is a step-by-step guide written for a first-ever
 pull request — fork, branch, env setup, commit conventions, and opening the PR.
 
