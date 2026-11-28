@@ -358,6 +358,23 @@ export const startQuizSessionController = async (req: Request, res: Response) =>
         if (quiz.status !== 'ACTIVE') return errorResponse(res, 400, "Quiz is not active. Please generate access code first");
 
         const liveVideo = req.body?.liveVideo === true;
+        const restart = req.body?.restart === true;
+
+        // A session of this quiz is being played, or its host left without
+        // ending it. A second lobby would strand the players in this one and
+        // send new joiners elsewhere, so report it and let the host decide.
+        const running = await prisma.quizSession.findFirst({
+            where: { quizId: quizId as string, status: 'IN_PROGRESS' },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        if (running && !restart) {
+            return res.status(200).json({
+                sessonId: running.id,
+                liveVideo: running.liveVideo,
+                inProgress: true,
+            });
+        }
 
         let session: typeof quiz.quizSessions[number] | undefined = quiz.quizSessions[0];
 
@@ -382,6 +399,15 @@ export const startQuizSessionController = async (req: Request, res: Response) =>
                 data: { status: 'CANCELLED', endedAt: new Date() }
             });
             session = undefined;
+        }
+
+        // Only reached with a running session when the host asked to restart,
+        // and after the checks above so a refused request cancels nothing.
+        if (running) {
+            await prisma.quizSession.updateMany({
+                where: { quizId: quizId as string, status: 'IN_PROGRESS' },
+                data: { status: 'CANCELLED', endedAt: new Date() }
+            });
         }
 
         if (!session) {

@@ -357,3 +357,72 @@ describe('QuizBuilder co-organizers', () => {
         expect(await screen.findByText('Failed to invite.')).toBeInTheDocument();
     });
 });
+
+describe('QuizBuilder Host Live during a running session', () => {
+    const running = { sessonId: 'session-running', liveVideo: false, inProgress: true };
+
+    function renderHost() {
+        render(
+            <MemoryRouter initialEntries={['/quiz/quiz-1/edit']}>
+                <Routes>
+                    <Route path="/quiz/:id/edit" element={<QuizBuilder />} />
+                    <Route path="/quiz/manage/session-running" element={<p>running screen</p>} />
+                    <Route path="/quiz/manage/session-new" element={<p>new lobby screen</p>} />
+                </Routes>
+            </MemoryRouter>
+        );
+        return userEvent.setup();
+    }
+
+    async function pressHostLive() {
+        vi.mocked(api.get).mockResolvedValue({ data: { ...quiz, status: 'ACTIVE' } });
+        const user = renderHost();
+        await user.click(await screen.findByRole('button', { name: 'Host Live' }));
+        return user;
+    }
+
+    it('goes straight to the lobby when nothing is running', async () => {
+        vi.mocked(api.post).mockResolvedValue({ data: { sessonId: 'session-new' } });
+
+        await pressHostLive();
+
+        expect(await screen.findByText('new lobby screen')).toBeInTheDocument();
+    });
+
+    it('asks first, and can return to the running session', async () => {
+        vi.mocked(api.post).mockResolvedValue({ data: running });
+        const user = await pressHostLive();
+
+        const dialog = await screen.findByRole('dialog', { name: 'A session is already running' });
+        await user.click(within(dialog).getByRole('button', { name: 'Return to session' }));
+
+        expect(screen.getByText('running screen')).toBeInTheDocument();
+        expect(api.post).toHaveBeenCalledTimes(1);
+    });
+
+    it('starts a new session only when the host chooses to', async () => {
+        vi.mocked(api.post)
+            .mockResolvedValueOnce({ data: running })
+            .mockResolvedValueOnce({ data: { sessonId: 'session-new' } });
+        const user = await pressHostLive();
+
+        await user.click(await screen.findByRole('button', { name: 'Start new session' }));
+
+        expect(await screen.findByText('new lobby screen')).toBeInTheDocument();
+        expect(vi.mocked(api.post).mock.calls.map((call) => call[1])).toEqual([
+            { liveVideo: false },
+            { liveVideo: false, restart: true },
+        ]);
+    });
+
+    it('changes nothing when the choice is cancelled', async () => {
+        vi.mocked(api.post).mockResolvedValue({ data: running });
+        const user = await pressHostLive();
+
+        await user.click(await screen.findByRole('button', { name: 'Cancel' }));
+
+        expect(screen.queryByRole('dialog')).toBeNull();
+        expect(screen.getByRole('button', { name: 'Host Live' })).toBeEnabled();
+        expect(api.post).toHaveBeenCalledTimes(1);
+    });
+});

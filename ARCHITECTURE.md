@@ -203,7 +203,9 @@ Everything transactional. Routes under `/api/v1`:
   GET  /:quizId               quiz + questions + answers
   POST /:quizId/generate-access-code    create the join code
   POST /:quizId/questions               add a question + its answers
-  POST /:quizId/start-session [auth] create QuizSession -> returns sessionId
+  POST /:quizId/start-session [auth] open a lobby -> returns sessionId
+                                (a running session is returned instead,
+                                 unless the body has restart: true)
 
 /quizzes (invites)
   POST /:quizId/invite        email a co-organizer
