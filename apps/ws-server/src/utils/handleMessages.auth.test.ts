@@ -45,6 +45,8 @@ vi.mock("./timeManager.js", () => ({
     currentQuestionKey: (id: string) => `current:${id}`,
     closeQuestionWindow: mocks.closeQuestionWindow,
     finishQuestionEarly: vi.fn(),
+    markQuestionAsked: vi.fn(),
+    showStandings: vi.fn(),
 }));
 vi.mock("./answerQueue.js", () => ({
     enqueueAnswer: vi.fn(),
@@ -262,6 +264,7 @@ describe("a participant cannot run the quiz", () => {
     it.each([
         ["quiz:start"],
         ["quiz:next-question"],
+        ["quiz:show-leaderboard"],
         ["quiz:end"],
         ["participants:refresh"],
     ])("%s is refused", async (type) => {

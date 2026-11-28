@@ -220,6 +220,59 @@ describe('LiveQuiz host controls on a dropped connection', () => {
     });
 });
 
+describe('LiveQuiz Show Standings', () => {
+    const question = {
+        id: 'q1',
+        text: 'First question',
+        timeLimit: 20,
+        answers: [{ id: 'a1', text: 'Paris' }],
+    };
+
+    async function hostSees(type: string, payload: Record<string, unknown>) {
+        renderLive('/live/session-1', true);
+        await firstJoinMessage();
+        deliver(type, payload);
+    }
+
+    it('asks for the standings instead of the next question', async () => {
+        const user = userEvent.setup();
+        await hostSees('quiz:question', { question });
+        deliver('quiz:question-results', { correctAnswers: ['a1'] });
+
+        await user.click(screen.getByRole('button', { name: /show standings/i }));
+
+        expect(sentOfType('quiz:next-question')).toHaveLength(0);
+        expect(sentOfType('quiz:show-leaderboard').map((m) => m.payload)).toEqual([
+            { sessionId: 'session-1' },
+        ]);
+
+        deliver('quiz:leaderboard', { leaderboard: [] });
+        await user.click(screen.getByRole('button', { name: 'Next Question' }));
+
+        expect(sentOfType('quiz:next-question').map((m) => m.payload.questionIndex)).toEqual([1]);
+    });
+
+    it('still leads on after a reload on a closed question', async () => {
+        const user = userEvent.setup();
+        await hostSees('quiz:state-snapshot', {
+            question,
+            questionIndex: 2,
+            timeLeft: 0,
+            alreadyAnswered: false,
+            selectedAnswerId: null,
+            expired: true,
+        });
+
+        await user.click(screen.getByRole('button', { name: /show standings/i }));
+        expect(sentOfType('quiz:show-leaderboard')).toHaveLength(1);
+
+        deliver('quiz:leaderboard', { leaderboard: [] });
+        await user.click(screen.getByRole('button', { name: 'Next Question' }));
+
+        expect(sentOfType('quiz:next-question').map((m) => m.payload.questionIndex)).toEqual([3]);
+    });
+});
+
 describe('LiveQuiz host start countdown', () => {
     it('cancels the first-question send when the host leaves', async () => {
         const view = renderLive('/live/session-1', true);
