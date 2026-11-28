@@ -1,16 +1,18 @@
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { LuUserSearch } from "react-icons/lu";
 import { getAvatar, getAvatarColor } from "../utils/Avatars";
 import { BiCheckCircle, BiPoll, BiXCircle } from "react-icons/bi";
 import BgBoss from "../components/BgBoss";
 import { FaSpinner } from "react-icons/fa6";
 import { MdHistory, MdViewInAr } from "react-icons/md";
+import { api } from "../services/api";
 import { participantTokenKey, streamingEnabled } from "../services/streamApi";
 import { downloadLeaderboardCsv } from "../utils/leaderboardCsv";
 import CreatePollModal from "../components/poll/CreatePollModal";
 import ActivePollOverlay from "../components/poll/ActivePollOverlay";
+import RecordedPollsList from "../components/poll/RecordedPollsList";
 import RecordedPollsModal from "../components/poll/RecordedPollsModal";
 import type { Poll } from "../components/poll/types";
 
@@ -80,6 +82,72 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
   const [recordedPolls, setRecordedPolls] = useState<Poll[]>([]);
   const [pollNotice, setPollNotice] = useState<string | null>(null);
   const [pollLaunchError, setPollLaunchError] = useState<string | null>(null);
+
+  // Final screen recorded polls state (organizer only)
+  const [endedPolls, setEndedPolls] = useState<Poll[]>([]);
+  const [endedPollsLoading, setEndedPollsLoading] = useState(false);
+  const [endedPollsError, setEndedPollsError] = useState<string | null>(null);
+  const fetchedEndedPollsSessionRef = useRef<string | null>(null);
+  const endedPollsInFlightRef = useRef(false);
+  const activeSessionIdRef = useRef(sessionId);
+  activeSessionIdRef.current = sessionId;
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    fetchedEndedPollsSessionRef.current = null;
+    endedPollsInFlightRef.current = false;
+    setEndedPolls([]);
+    setEndedPollsLoading(false);
+    setEndedPollsError(null);
+  }, [sessionId]);
+
+  const fetchEndedPolls = useCallback(async (force = false) => {
+    if (!isOrganizer || !sessionId) return;
+    if (!token) {
+      setEndedPollsError("You must be signed in as an organizer to view recorded polls.");
+      setEndedPollsLoading(false);
+      return;
+    }
+    if (!force && (fetchedEndedPollsSessionRef.current === sessionId || endedPollsInFlightRef.current)) {
+      return;
+    }
+
+    const targetSessionId = sessionId;
+    endedPollsInFlightRef.current = true;
+    setEndedPollsLoading(true);
+    setEndedPollsError(null);
+
+    try {
+      const { data } = await api.get<{ polls?: Poll[] }>(`/session/${targetSessionId}/polls`);
+      if (!isMountedRef.current || activeSessionIdRef.current !== targetSessionId) return;
+      fetchedEndedPollsSessionRef.current = targetSessionId;
+      setEndedPolls(Array.isArray(data?.polls) ? data.polls : []);
+    } catch (err: unknown) {
+      if (!isMountedRef.current || activeSessionIdRef.current !== targetSessionId) return;
+      const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      setEndedPollsError(message || "Failed to load recorded polls. Please try again.");
+    } finally {
+      if (activeSessionIdRef.current === targetSessionId) {
+        endedPollsInFlightRef.current = false;
+        if (isMountedRef.current) {
+          setEndedPollsLoading(false);
+        }
+      }
+    }
+  }, [isOrganizer, sessionId, token]);
+
+  useEffect(() => {
+    if (isOrganizer && gameState === GameState.ENDED) {
+      void fetchEndedPolls(false);
+    }
+  }, [isOrganizer, gameState, fetchEndedPolls]);
 
 
 
@@ -1205,6 +1273,64 @@ function LiveQuiz({ isOrganizer = false }: LiveQuizProps) {
                 </div>
 
               </div>
+
+              {isOrganizer && (
+                <section
+                  aria-labelledby="ended-recorded-polls-title"
+                  className="w-full max-w-4xl mx-auto mt-10 bg-[#0c0c0e]/90 border border-pink-500/30 rounded-3xl p-6 sm:p-8 shadow-xl shadow-pink-950/20"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-white/10 mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-linear-to-br from-pink-600/30 to-pink-900/40 border border-pink-500/40 flex items-center justify-center text-pink-400">
+                        <BiPoll className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h2
+                          id="ended-recorded-polls-title"
+                          className="text-xl sm:text-2xl font-bold font-special bg-clip-text text-transparent bg-linear-to-r from-pink-400 to-pink-600 tracking-wider"
+                        >
+                          Polls you recorded
+                        </h2>
+                        {!endedPollsLoading && !endedPollsError && (
+                          <p className="text-xs text-zinc-400 font-secondary">
+                            {endedPolls.length} {endedPolls.length === 1 ? "poll recorded" : "polls recorded"} this session
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {endedPollsLoading ? (
+                    <div
+                      role="status"
+                      aria-live="polite"
+                      className="flex items-center justify-center gap-3 py-10 text-zinc-400 font-secondary text-sm"
+                    >
+                      <FaSpinner className="w-5 h-5 text-pink-500 animate-spin" />
+                      <span>Loading recorded polls...</span>
+                    </div>
+                  ) : endedPollsError ? (
+                    <div className="text-center py-8 border border-rose-500/30 bg-rose-950/20 rounded-2xl p-6">
+                      <p role="alert" className="text-sm text-rose-400 font-secondary mb-4">
+                        {endedPollsError}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => void fetchEndedPolls(true)}
+                        className="px-5 py-2 rounded-full border border-pink-500/50 bg-pink-600/20 hover:bg-pink-600/30 text-pink-300 text-sm font-secondary font-semibold transition-colors cursor-pointer"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  ) : (
+                    <RecordedPollsList
+                      polls={endedPolls}
+                      emptyTitle="No polls were recorded in this session"
+                      emptyDescription='Only polls you explicitly saved with "Record Result" during the quiz appear here.'
+                    />
+                  )}
+                </section>
+              )}
 
               {isOrganizer && sortedLeaderboard.length > 0 && (
                 <button
