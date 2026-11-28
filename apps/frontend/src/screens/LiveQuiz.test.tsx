@@ -5,6 +5,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import LiveQuiz from './LiveQuiz';
 import { useAuthStore } from '../store/authStore';
 
+vi.mock('../services/api', () => ({
+    api: { get: vi.fn() },
+}));
+
+const { api } = await import('../services/api');
+
 vi.mock('../components/BgBoss', () => ({
     default: () => null,
 }));
@@ -53,6 +59,8 @@ async function firstJoinMessage() {
 beforeEach(() => {
     sockets.length = 0;
     localStorage.clear();
+    vi.clearAllMocks();
+    vi.mocked(api.get).mockResolvedValue({ data: { polls: [] } });
     vi.stubGlobal('WebSocket', FakeSocket);
     vi.stubGlobal('matchMedia', (query: string) => ({
         matches: false,
@@ -400,6 +408,132 @@ describe('LiveQuiz polling integration', () => {
 
         expect(await screen.findByText(/Poll result recorded successfully!/i)).toBeInTheDocument();
         expect(screen.getByText(/^Recorded/i)).toBeInTheDocument();
+    });
+});
+
+describe('LiveQuiz final screen recorded polls', () => {
+    const sampleRecordedPolls = [
+        {
+            id: 'poll-rec-1',
+            sessionId: 'session-1',
+            question: 'How was the pace?',
+            questionIndex: 1,
+            status: 'ENDED' as const,
+            isRecorded: true,
+            totalVotes: 10,
+            createdAt: Date.now() - 60_000,
+            endedAt: Date.now() - 30_000,
+            recordedAt: Date.now() - 20_000,
+            options: [
+                { id: 'opt-1', text: 'Just right', order: 0, voteCount: 7, percentage: 70 },
+                { id: 'opt-2', text: 'Too fast', order: 1, voteCount: 3, percentage: 30 },
+            ],
+        },
+    ];
+
+    it('fetches and renders recorded polls below the leaderboard when the organizer reaches ENDED', async () => {
+        let resolvePolls!: (value: { data: { polls: typeof sampleRecordedPolls } }) => void;
+        vi.mocked(api.get).mockImplementationOnce(
+            () => new Promise((resolve) => { resolvePolls = resolve; })
+        );
+
+        renderLive('/live/session-1', true);
+        await firstJoinMessage();
+        deliver('quiz:leaderboard', {
+            leaderboard: [{ id: 'p1', username: 'Ada', score: 20, totalTimeMs: 500 }],
+        });
+        deliver('quiz:ended', {});
+
+        expect(api.get).toHaveBeenCalledTimes(1);
+        expect(api.get).toHaveBeenCalledWith('/session/session-1/polls');
+        expect(screen.getByRole('heading', { name: 'Polls you recorded' })).toBeInTheDocument();
+        expect(screen.getByText('Loading recorded polls...')).toBeInTheDocument();
+
+        await act(async () => {
+            resolvePolls({ data: { polls: sampleRecordedPolls } });
+        });
+
+        expect(await screen.findByText('How was the pace?')).toBeInTheDocument();
+        expect(screen.getByText('Just right')).toBeInTheDocument();
+        expect(screen.getByText('70%')).toBeInTheDocument();
+        expect(screen.getByText('Too fast')).toBeInTheDocument();
+        expect(screen.getByText('30%')).toBeInTheDocument();
+        expect(screen.getByText('Q#2')).toBeInTheDocument();
+        expect(screen.getByText('1 poll recorded this session')).toBeInTheDocument();
+
+        const leaderboardPlayer = screen.getByText('Ada');
+        const pollsHeading = screen.getByRole('heading', { name: 'Polls you recorded' });
+        expect(
+            leaderboardPlayer.compareDocumentPosition(pollsHeading) & Node.DOCUMENT_POSITION_FOLLOWING
+        ).toBeTruthy();
+    });
+
+    it('shows the empty state when the organizer has no recorded polls', async () => {
+        vi.mocked(api.get).mockResolvedValueOnce({ data: { polls: [] } });
+
+        renderLive('/live/session-1', true);
+        await firstJoinMessage();
+        deliver('quiz:ended', {});
+
+        expect(await screen.findByText('No polls were recorded in this session')).toBeInTheDocument();
+        expect(screen.getByText('0 polls recorded this session')).toBeInTheDocument();
+    });
+
+    it('shows an error state and retries fetching recorded polls when Retry is clicked', async () => {
+        const user = userEvent.setup();
+        vi.mocked(api.get)
+            .mockRejectedValueOnce({ response: { data: { error: 'Server unavailable' } } })
+            .mockResolvedValueOnce({ data: { polls: sampleRecordedPolls } });
+
+        renderLive('/live/session-1', true);
+        await firstJoinMessage();
+        deliver('quiz:ended', {});
+
+        expect(await screen.findByRole('alert')).toHaveTextContent('Server unavailable');
+
+        await user.click(screen.getByRole('button', { name: 'Retry' }));
+
+        expect(api.get).toHaveBeenCalledTimes(2);
+        expect(await screen.findByText('How was the pace?')).toBeInTheDocument();
+    });
+
+    it('avoids duplicate API calls on repeated quiz:ended or quiz:leaderboard WebSocket events', async () => {
+        vi.mocked(api.get).mockResolvedValue({ data: { polls: sampleRecordedPolls } });
+
+        renderLive('/live/session-1', true);
+        await firstJoinMessage();
+
+        deliver('quiz:ended', {});
+        expect(await screen.findByText('How was the pace?')).toBeInTheDocument();
+
+        deliver('quiz:ended', {});
+        deliver('quiz:leaderboard', { leaderboard: [{ id: 'p1', username: 'Ada', score: 20 }] });
+        deliver('quiz:ended', {});
+
+        expect(api.get).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not fetch or render recorded polls for participants on the ENDED screen', async () => {
+        localStorage.setItem('rexial:participant:session-1', 'participant-1');
+        renderLive('/live/session-1', false);
+        await firstJoinMessage();
+        deliver('quiz:ended', {});
+
+        expect(await screen.findByText('Quiz Finished!')).toBeInTheDocument();
+        expect(api.get).not.toHaveBeenCalled();
+        expect(screen.queryByRole('heading', { name: 'Polls you recorded' })).not.toBeInTheDocument();
+    });
+
+    it('does not issue an unauthenticated request when the organizer token is missing', async () => {
+        useAuthStore.setState({ user: null, token: null });
+        renderLive('/live/session-1', true);
+        await firstJoinMessage();
+        deliver('quiz:ended', {});
+
+        expect(await screen.findByRole('alert')).toHaveTextContent(
+            'You must be signed in as an organizer to view recorded polls.'
+        );
+        expect(api.get).not.toHaveBeenCalled();
     });
 });
 

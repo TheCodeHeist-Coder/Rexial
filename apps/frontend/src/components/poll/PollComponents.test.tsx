@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import CreatePollModal from "./CreatePollModal";
 import ActivePollOverlay from "./ActivePollOverlay";
+import RecordedPollsList from "./RecordedPollsList";
 import RecordedPollsModal from "./RecordedPollsModal";
 import type { Poll } from "./types";
 
@@ -289,5 +290,42 @@ describe("RecordedPollsModal", () => {
     expect(screen.getByText("67%")).toBeInTheDocument();
     expect(screen.getByText("33%")).toBeInTheDocument();
     expect(screen.getByText("Q#1")).toBeInTheDocument();
+  });
+});
+
+describe("RecordedPollsList", () => {
+  it("supports custom empty copy and renders zero-vote polls safely", () => {
+    const { rerender } = render(
+      <RecordedPollsList
+        polls={[]}
+        emptyTitle="No polls were recorded in this session"
+        emptyDescription="Only explicitly saved polls appear here."
+      />
+    );
+    expect(screen.getByText("No polls were recorded in this session")).toBeInTheDocument();
+    expect(screen.getByText("Only explicitly saved polls appear here.")).toBeInTheDocument();
+
+    rerender(
+      <RecordedPollsList
+        polls={[
+          {
+            id: "poll-zero",
+            sessionId: "sess-1",
+            question: "Zero votes?",
+            status: "ENDED",
+            isRecorded: true,
+            totalVotes: 0,
+            createdAt: Date.now(),
+            options: [
+              { id: "o1", text: "Yes", order: 0, voteCount: 0, percentage: 0 },
+              { id: "o2", text: "No", order: 1, voteCount: 0, percentage: 0 },
+            ],
+          },
+        ]}
+      />
+    );
+    expect(screen.getByText("Zero votes?")).toBeInTheDocument();
+    expect(screen.getByText("0 votes")).toBeInTheDocument();
+    expect(screen.getAllByText("0%")).toHaveLength(2);
   });
 });
