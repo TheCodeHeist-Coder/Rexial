@@ -19,6 +19,7 @@ import { useAiRequest } from './useAiRequest';
 interface DraftQuestion extends GeneratedQuestion {
     id: number;
     selected: boolean;
+    timeLimit: string;
 }
 
 interface Props {
@@ -39,10 +40,11 @@ const MAX_TIME = 300;
 
 let nextDraftId = 1;
 
-const toDraft = (q: GeneratedQuestion): DraftQuestion => ({
+const toDraft = (q: GeneratedQuestion, timeLimit: string): DraftQuestion => ({
     ...q,
     id: nextDraftId++,
     selected: true,
+    timeLimit,
 });
 
 const chip = (active: boolean) =>
@@ -75,6 +77,13 @@ function GenerateQuizTab({ file, existingQuestions, onSave, onSaved, onClose }: 
 
     const updateDraft = (id: number, patch: Partial<DraftQuestion>) => {
         setDrafts((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } : d)));
+    };
+
+    // The batch control doubles as "set all": changing it updates every draft.
+    // An out-of-range value is still applied so saving reports it per draft.
+    const applyBatchTimeLimit = (value: string) => {
+        setTimeLimit(value);
+        setDrafts((prev) => prev.map((d) => ({ ...d, timeLimit: value })));
     };
 
     const setCorrect = (id: number, optIdx: number) => {
@@ -123,7 +132,7 @@ function GenerateQuizTab({ file, existingQuestions, onSave, onSaved, onClose }: 
             );
 
             // appended, so generating again never throws away unsaved work
-            setDrafts((prev) => [...prev, ...questions.map(toDraft)]);
+            setDrafts((prev) => [...prev, ...questions.map((q) => toDraft(q, timeLimit))]);
         } catch (err) {
             if (!isCancelled(err)) {
                 setError(genaiErrorMessage(err, 'Failed to generate questions.'));
@@ -153,7 +162,7 @@ function GenerateQuizTab({ file, existingQuestions, onSave, onSaved, onClose }: 
 
             if (replacement) {
                 setDrafts((prev) =>
-                    prev.map((d) => (d.id === draft.id ? toDraft(replacement) : d))
+                    prev.map((d) => (d.id === draft.id ? toDraft(replacement, draft.timeLimit) : d))
                 );
             }
         } catch (err) {
@@ -176,11 +185,15 @@ function GenerateQuizTab({ file, existingQuestions, onSave, onSaved, onClose }: 
 
         if (invalid) return setError('Every question and option needs text.');
 
-        const seconds = Number(timeLimit);
+        const invalidTime = chosen.find(
+            (q) =>
+                !Number.isInteger(Number(q.timeLimit)) || Number(q.timeLimit) < MIN_TIME || Number(q.timeLimit) > MAX_TIME
+        );
 
-        if (!Number.isInteger(seconds) || seconds < MIN_TIME || seconds > MAX_TIME) {
+        if (invalidTime) {
+            const position = chosen.indexOf(invalidTime) + 1;
             return setError(
-                `Time per question must be a whole number from ${MIN_TIME} to ${MAX_TIME} seconds.`
+                `Question ${position} ("${invalidTime.text.slice(0, 50)}") needs a whole-number time limit from ${MIN_TIME} to ${MAX_TIME} seconds.`
             );
         }
 
@@ -194,7 +207,7 @@ function GenerateQuizTab({ file, existingQuestions, onSave, onSaved, onClose }: 
             // Remove only confirmed saves, so retrying won't submit those drafts again.
             for (const q of chosen) {
                 try {
-                    await onSave(q, seconds);
+                    await onSave(q, Number(q.timeLimit));
                 } catch (err) {
                     const response = isAxiosError<{ error?: unknown }>(err) ? err.response : undefined;
                     const status = response?.status;
@@ -355,7 +368,7 @@ function GenerateQuizTab({ file, existingQuestions, onSave, onSaved, onClose }: 
                                         key={t}
                                         type="button"
                                         aria-pressed={timeLimit === String(t)}
-                                        onClick={() => setTimeLimit(String(t))}
+                                        onClick={() => applyBatchTimeLimit(String(t))}
                                         className={`py-1.5 px-2.5 rounded-lg border text-xs font-bold cursor-pointer ${
                                             timeLimit === String(t)
                                                 ? 'bg-green-600/30 border-green-500 text-green-200'
@@ -372,7 +385,7 @@ function GenerateQuizTab({ file, existingQuestions, onSave, onSaved, onClose }: 
                                     max={MAX_TIME}
                                     className="text-center bg-green-800/20 outline-none border border-green-800 w-16 py-1.5 text-gray-50 font-extrabold rounded-lg"
                                     value={timeLimit}
-                                    onChange={(e) => setTimeLimit(e.target.value)}
+                                    onChange={(e) => applyBatchTimeLimit(e.target.value)}
                                 />
                                 <span className="text-xs text-green-500 tracking-widest font-bold">
                                     SECS EACH
@@ -447,6 +460,19 @@ function GenerateQuizTab({ file, existingQuestions, onSave, onSaved, onClose }: 
                                             <option value="Medium">Medium</option>
                                             <option value="High">High</option>
                                         </select>
+
+                                        <input
+                                            type="number"
+                                            aria-label="Seconds for this question"
+                                            min={MIN_TIME}
+                                            max={MAX_TIME}
+                                            value={q.timeLimit}
+                                            onChange={(e) =>
+                                                updateDraft(q.id, { timeLimit: e.target.value })
+                                            }
+                                            disabled={busy}
+                                            className="w-16 shrink-0 text-center text-xs px-2 py-1 rounded border border-green-800/60 bg-zinc-900 text-green-200 font-bold outline-none"
+                                        />
 
                                         <button
                                             type="button"
